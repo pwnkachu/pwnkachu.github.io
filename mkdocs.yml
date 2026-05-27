@@ -71,6 +71,11 @@ nav:
     - Crypto: writeups/crypto.md
     - Forensics: writeups/forensics.md
     - Misc: writeups/misc.md
+  
+  - General:
+    - Tamarin:
+      - Tamarin Overview: general/tamarin.md
+      - Protocol Example: general/tamarin_protocol_example.md
 
 markdown_extensions:
   - admonition
