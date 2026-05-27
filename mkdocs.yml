@@ -1,0 +1,89 @@
+site_name: PwnKachu Notes
+site_url: https://pwnkachu.github.io
+site_description: Computer Security notes, CTF writeups and projects.
+
+theme:
+  name: material
+  language: en
+  # ----------------------------------------
+  logo: assets/logo.jpg          
+  favicon: assets/favicon.png    
+  # ----------------------------------------
+  palette:
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      toggle:
+        icon: material/brightness-7
+        name: Switch to dark mode
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      toggle:
+        icon: material/brightness-4
+        name: Switch to light mode
+  features:
+    - navigation.tabs          
+    - navigation.sections      
+    - navigation.indexes      
+    - search.suggest         
+    - content.code.copy       
+
+nav:
+  - Home: index.md
+  
+  - Binary Exploitation:
+    - Introduction:
+      - ELF Format: binexp/intro/elf.md
+      - Assembly: binexp/intro/assembly.md
+      - The Stack: binexp/intro/stack.md
+    - Stack Exploitation:
+      - Buffer Overflow: binexp/stack/buffer_overflow.md
+      - ret2libc: binexp/stack/ret2libc.md
+      - ROP (Return Oriented Programming): binexp/stack/rop.md
+      - SROP (Sigreturn Oriented Programming): binexp/stack/srop.md
+      - Pivot Stack: binexp/stack/stack_pivoting.md
+      - Format String Attacks: binexp/stack/format_string.md
+      - Integer Overflow: binexp/stack/integer_overflow.md
+      - Race Conditions: binexp/stack/race_conditions.md
+    - Heap Exploitation:
+      - Heap Basics & Chunk Structure: binexp/heap/basics.md
+      - First-Fit & Use-After-Free (UAF): binexp/heap/uaf.md
+      - Double Free: binexp/heap/double_free.md
+      - Fastbin Dup: binexp/heap/fastbin_dup.md
+      - Tcache Poisoning: binexp/heap/tcache_poisoning.md
+      - Unsorted Bin Attack: binexp/heap/unsorted_bin.md
+      - House of Force: binexp/heap/house_of_force.md
+      - House of Lore: binexp/heap/house_of_lore.md
+      - House of Orange: binexp/heap/house_of_orange.md
+      - House of Einherjar: binexp/heap/house_of_einherjar.md
+      - House of Rust: binexp/heap/house_of_rust.md
+      - Safe Linking Bypass: binexp/heap/safe_linking.md
+
+  - Web Security:
+    - Overview: web/index.md
+
+  - Crypto:
+    - Overview: crypto/index.md
+
+  - CTF Writeups:
+    - Pwn: writeups/pwn.md
+    - Reverse Engineering: writeups/rev.md
+    - Web: writeups/web.md
+    - Crypto: writeups/crypto.md
+    - Forensics: writeups/forensics.md
+    - Misc: writeups/misc.md
+
+markdown_extensions:
+  - admonition
+  - pymdownx.highlight:
+      anchor_linenums: true
+      line_spans: __span
+      pygments_lang_class: true
+  - pymdownx.superfences 
+  - pymdownx.snippets
+  - pymdownx.details
+  - pymdownx.arithmatex:
+      generic: true
+
+extra_javascript:
+  - https://unpkg.com/mathjax@3/es5/tex-mml-chtml.js
+  
