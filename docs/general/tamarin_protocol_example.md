@@ -52,7 +52,7 @@ $B$ decrypts the component from $T$ to retrieve the session key $K_{AB}$ and ver
  $B$ sends a timestamp $T_B$ encrypted with the shared session key $K_{AB}$.
 * **Message:** $\{T_B\}_{K_{AB}}$
 
-![Image of the protocol](image.png)
+![Image of the protocol](protocol.png)
 
 The properties that this protocol needs to hold are:
 
@@ -240,6 +240,6 @@ Secrecy is formalized as whenever we have Sent(a,b,k) at some point i of the tra
 
 For both authenticate lemmas Tamarin was able to find an attack. The attack that Tamarin found for AauthenticatesB is a A talks to A attacks, in which an agent is able to authenticate itself.
 
-![Attacks](image-1.png)
+![Attacks](TamarinAttack.png)
 
 For further analysis of the attacks visit:  [Tamarin PDF](https://tamarin-prover.com/book/downloads/Tamarin%20book-Draft%20v0.9.5.pdf)

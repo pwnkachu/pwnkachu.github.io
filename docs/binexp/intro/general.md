@@ -57,3 +57,43 @@ pop rbp       ; Restores RBP
 ```
 
 By overwriting the saved RBP with your fake address and ensuring the function ends with leave; ret (main), you trick the program into treating your fake memory region as the real stack.
+
+### Intel CET and the Modern PLT: `.plt`, `.plt.sec`, and `endbr64`
+
+In modern x86_64 binaries, the Procedure Linkage Table (PLT) is often split into two sections: `.plt` and `.plt.sec`. Additionally, you will see the `endbr64` instruction everywhere. This new structure is designed to support **Intel CET** (Control-flow Enforcement Technology), a hardware defense mechanism against ROP and JOP exploits.
+
+#### `endbr64`
+Intel CET introduces **IBT** (Indirect Branch Tracking). IBT enforces a strict rule to prevent attackers from hijacking execution flow: **every indirect jump or call must land on an `endbr64` instruction**. 
+
+If an indirect jump (like `jmp *rax` or a jump via a GOT entry) lands on anything else, the CPU triggers a hardware exception and terminates the process.
+
+#### The Legacy PLT Problem
+The traditional PLT handled both execution and lazy binding in a single, strictly 16-byte aligned block. However, with CET active:
+1. Calls via function pointers (indirect calls) targeting the PLT require an `endbr64` at the start.
+2. The lazy binding "bounce" from the GOT back to the PLT is an indirect jump, requiring a second `endbr64`.
+
+Squeezing two 4-byte `endbr64` instructions into a rigid 16-byte block would destroy performance and alignment. The solution was to split the PLT in two.
+
+#### The 2-PLT Architecture
+Modern linkers separate the PLT into a "fast path" for execution and a "slow path" for resolution.
+
+#### `.plt.sec`
+This is the section your code actually calls (e.g., `call printf@plt.sec`). It is streamlined, CET-compliant, and handles the actual jump to the GOT.
+
+```assembly
+endbr64          # Safe landing pad for function pointers
+jmp *GOT[func]   # Indirect jump to the real address (or back to .plt)
+nop              # Alignment padding
+```
+
+#### .plt (The Slow Path / Lazy Binding)
+
+This section is only used during the very first call to a function, when the GOT still contains the fallback address instead of the real library address.
+
+```
+endbr64          # Safe landing pad for the GOT bounce-back
+push id          # Push the relocation index
+jmp plt0         # Jump to the dynamic resolver trampoline
+```
+
+I wrote this because I was stuck on a challenge where I used a Use-After-Free (UAF) vulnerability to overwrite the GOT, specifically trying to replace free@got with system. Due to alignment constraints, my write had to start at GOT[2] (the dynamic resolver pointer) just to reach the free@got entry. I had managed to force the resolution of system earlier in the program, but whenever I tried to redirect execution to system@plt, it resulted in a segmentation fault. My exploit kept failing because I didn't understand the architectural split between .plt and .plt.sec. Once I realized I needed to point to system@plt.sec since the function was already resolved the exploit worked.
