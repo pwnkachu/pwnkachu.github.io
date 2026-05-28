@@ -35,6 +35,9 @@ nav:
       - ELF Format: binexp/intro/elf.md
       - Assembly: binexp/intro/assembly.md
       - The Stack: binexp/intro/stack.md
+      - GOT and PLT: binexp/intro/got_plt.md
+      - Useful Commands: binexp/intro/commands.md
+      - General knowledge: binexp/intro/general.md
     - Stack Exploitation:
       - Buffer Overflow: binexp/stack/buffer_overflow.md
       - ret2libc: binexp/stack/ret2libc.md
