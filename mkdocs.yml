@@ -49,6 +49,7 @@ nav:
       - Race Conditions: binexp/stack/race_conditions.md
     - Heap Exploitation:
       - Heap Basics & Chunk Structure: binexp/heap/basics.md
+      - Heap Protections: binexp/heap/protections.md
       - First-Fit & Use-After-Free (UAF): binexp/heap/uaf.md
       - Double Free: binexp/heap/double_free.md
       - Fastbin Dup: binexp/heap/fastbin_dup.md
