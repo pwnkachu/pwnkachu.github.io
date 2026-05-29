@@ -1,0 +1,3876 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="Personal reference guide for x86-64 assembly instructions, memory layout, and architecture concepts.">
+      
+      
+      
+        <link rel="canonical" href="https://pwnkachu.github.io/binexp/intro/assembly/">
+      
+      
+        <link rel="prev" href="../elf/">
+      
+      
+        <link rel="next" href="../stack/">
+      
+      
+        
+      
+      
+      <link rel="icon" href="../../../assets/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.6">
+    
+    
+      
+        <title>x86-64 Assembly Learning Guide - PwnKachu Notes</title>
+      
+    
+    
+      <link rel="stylesheet" href="../../../assets/stylesheets/main.484c7ddc.min.css">
+      
+        
+        <link rel="stylesheet" href="../../../assets/stylesheets/palette.ab4e12ef.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+    <script>__md_scope=new URL("../../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#x86-64-assembly-learning-guide" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+<header class="md-header" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href="../../.." title="PwnKachu Notes" class="md-header__button md-logo" aria-label="PwnKachu Notes" data-md-component="logo">
+      
+  <img src="../../../assets/logo.jpg" alt="logo">
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            PwnKachu Notes
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              x86-64 Assembly Learning Guide
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: light)" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-label="Switch to dark mode"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="Switch to dark mode" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a4 4 0 0 0-4 4 4 4 0 0 0 4 4 4 4 0 0 0 4-4 4 4 0 0 0-4-4m0 10a6 6 0 0 1-6-6 6 6 0 0 1 6-6 6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: dark)" data-md-color-scheme="slate" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-label="Switch to light mode"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="Switch to light mode" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 18c-.89 0-1.74-.2-2.5-.55C11.56 16.5 13 14.42 13 12s-1.44-4.5-3.5-5.45C10.26 6.2 11.11 6 12 6a6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+        <div class="md-search__suggest" data-md-component="search-suggest"></div>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+            
+<nav class="md-tabs" aria-label="Tabs" data-md-component="tabs">
+  <div class="md-grid">
+    <ul class="md-tabs__list">
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../../.." class="md-tabs__link">
+        
+  
+  
+    
+  
+  Home
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+    
+  
+  
+    
+    
+      
+  
+  
+  
+    
+  
+  
+    
+    
+      <li class="md-tabs__item md-tabs__item--active">
+        <a href="../elf/" class="md-tabs__link">
+          
+  
+  
+    
+  
+  Binary Exploitation
+
+        </a>
+      </li>
+    
+  
+
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../../web/" class="md-tabs__link">
+          
+  
+  
+    
+  
+  Web Security
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../../crypto/" class="md-tabs__link">
+          
+  
+  
+    
+  
+  Crypto
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../../writeups/pwn/" class="md-tabs__link">
+          
+  
+  
+    
+  
+  CTF Writeups
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../../general/tamarin/" class="md-tabs__link">
+          
+  
+  
+    
+  
+  General
+
+        </a>
+      </li>
+    
+  
+
+    
+  
+
+      
+    </ul>
+  </div>
+</nav>
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+  
+
+
+<nav class="md-nav md-nav--primary md-nav--lifted" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="../../.." title="PwnKachu Notes" class="md-nav__button md-logo" aria-label="PwnKachu Notes" data-md-component="logo">
+      
+  <img src="../../../assets/logo.jpg" alt="logo">
+
+    </a>
+    PwnKachu Notes
+  </label>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../.." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Home
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+        
+        
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_2" id="__nav_2_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Binary Exploitation
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_2_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_2">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Binary Exploitation
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+        
+          
+          
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2_1" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_2_1" id="__nav_2_1_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Introduction
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_2_1_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_2_1">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Introduction
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../elf/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    ELF Format
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Assembly
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Assembly
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#introduction" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Introduction
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#architecture-concepts" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Architecture Concepts
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Architecture Concepts">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#c-data-sizes-types" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        C Data Sizes &amp; Types
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#endianness" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Endianness
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Endianness">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#big-endian-standard-for-network-traffic" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Big Endian (Standard for Network Traffic)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#little-endian-standard-for-intelamd-x86" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Little Endian (Standard for Intel/AMD x86)
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#computer-memory-hierarchy" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Computer Memory Hierarchy
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#cpu-registers" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        CPU Registers
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="CPU Registers">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#register-breakdown-backward-compatibility" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Register Breakdown &amp; Backward Compatibility
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Register Breakdown &amp; Backward Compatibility">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#the-architecture-extension-legacy" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        The Architecture Extension Legacy
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#general-purpose-registers-gpr-cheat-sheet" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        General Purpose Registers (GPR) Cheat Sheet
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#process-creation-memory-management" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Process Creation &amp; Memory Management
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Process Creation &amp; Memory Management">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#virtual-memory-isolation" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Virtual Memory &amp; Isolation
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#process-memory-segments" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Process Memory Segments
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Process Memory Segments">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#1-text-segment-text" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1. Text Segment (.text)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#2-data-segment-data" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2. Data Segment (.data)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#3-bss-segment-bss" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3. BSS Segment (.bss)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#4-heap" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4. Heap
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#5-stack" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5. Stack
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#the-stack-internals" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        The Stack Internals
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="The Stack Internals">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#stack-frames" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Stack Frames
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#calling-conventions" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Calling Conventions
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Calling Conventions">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#system-v-amd64-abi-linux-macos-bsd" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        System-V AMD64 ABI (Linux, macOS, BSD)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#32-bit-x86-legacy-calling-conventions" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        32-Bit x86 Legacy Calling Conventions
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#stack-frame-linkage-prologue-epilogue" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Stack Frame Linkage (Prologue &amp; Epilogue)
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Stack Frame Linkage (Prologue &amp; Epilogue)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#the-function-prologue" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        The Function Prologue
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#core-assembly-instruction-set" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Core Assembly Instruction Set
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Core Assembly Instruction Set">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#nop-no-operation" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        NOP (No Operation)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#push-pop" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Push &amp; Pop
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#memory-addressing-forms-rmx" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Memory Addressing Forms (r/mX)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#data-sizing-qualifiers" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Data Sizing Qualifiers
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#call-ret" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Call &amp; Ret
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#syntax-standards-intel-vs-att" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Syntax Standards: Intel vs AT&amp;T
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Syntax Standards: Intel vs AT&amp;T">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#practical-syntax-comparison" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Practical Syntax Comparison
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#data-arithmetic-logic-instructions" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Data Arithmetic &amp; Logic Instructions
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Data Arithmetic &amp; Logic Instructions">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#mov-move" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        MOV (Move)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#add-sub" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        ADD &amp; SUB
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#imul-signed-multiplication" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        IMUL (Signed Multiplication)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#data-extension-instructions" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Data Extension Instructions
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#lea-load-effective-address" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        LEA (Load Effective Address)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#test-cmp" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        TEST &amp; CMP
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#bitwise-shifts-shl-shr-sar" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Bitwise Shifts (SHL, SHR, SAR)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#string-operations-rep-stos-rep-movs" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        String Operations (REP STOS, REP MOVS)
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#cpu-status-flags-control-flow" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        CPU Status Flags &amp; Control Flow
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="CPU Status Flags &amp; Control Flow">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#conditional-jumps-jcc" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Conditional Jumps (Jcc)
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#advanced-architecture-technicalities" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Advanced Architecture Technicalities
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Advanced Architecture Technicalities">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#32-bit-register-zero-extension-legacy" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        32-Bit Register Zero-Extension Legacy
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#stack-realignment-rules" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Stack Realignment Rules
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#windows-x64-calling-convention-the-shadow-store" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Windows x64 Calling Convention: The Shadow Store
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#high-level-code-translation-examples" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        High-Level Code Translation Examples
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="High-Level Code Translation Examples">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#array-construction-access-optimization" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Array Construction &amp; Access Optimization
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#struct-static-offset-mapping" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Struct Static Offset Mapping
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../stack/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    The Stack
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../got_plt/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    GOT and PLT
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../commands/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Useful Commands
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../general/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    General knowledge
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+        
+          
+          
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2_2" >
+        
+          
+          <label class="md-nav__link" for="__nav_2_2" id="__nav_2_2_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Stack Exploitation
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_2_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2_2">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Stack Exploitation
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../stack/buffer_overflow/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Buffer Overflow
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../stack/ret2libc/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    ret2libc
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../stack/rop/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    ROP (Return Oriented Programming)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../stack/srop/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    SROP (Sigreturn Oriented Programming)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../stack/stack_pivoting/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Pivot Stack
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../stack/format_string/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Format String Attacks
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../stack/integer_overflow/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Integer Overflow
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../stack/race_conditions/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Race Conditions
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+        
+          
+          
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2_3" >
+        
+          
+          <label class="md-nav__link" for="__nav_2_3" id="__nav_2_3_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Heap Exploitation
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_2_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Heap Exploitation
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../heap/basics/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Heap Basics & Chunk Structure
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../heap/protections/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Heap Protections
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../heap/uaf/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    First-Fit & Use-After-Free (UAF)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../heap/double_free/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Double Free
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../heap/fastbin_dup/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Fastbin Dup
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../heap/tcache_poisoning/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Tcache Poisoning
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../heap/unsorted_bin/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Unsorted Bin Attack
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../heap/house_of_force/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    House of Force
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../heap/house_of_lore/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    House of Lore
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../heap/house_of_orange/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    House of Orange
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../heap/house_of_einherjar/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    House of Einherjar
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../heap/house_of_rust/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    House of Rust
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../heap/safe_linking/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Safe Linking Bypass
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" >
+        
+          
+          <div class="md-nav__link md-nav__container">
+            <a href="../../../web/" class="md-nav__link ">
+              
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Web Security
+  
+
+    
+  </span>
+  
+  
+
+            </a>
+            
+          </div>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Web Security
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4" >
+        
+          
+          <div class="md-nav__link md-nav__container">
+            <a href="../../../crypto/" class="md-nav__link ">
+              
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Crypto
+  
+
+    
+  </span>
+  
+  
+
+            </a>
+            
+          </div>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_4">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Crypto
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5" >
+        
+          
+          <label class="md-nav__link" for="__nav_5" id="__nav_5_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    CTF Writeups
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_5_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_5">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    CTF Writeups
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../writeups/pwn/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Pwn
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../writeups/rev/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Reverse Engineering
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../writeups/web/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Web
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../writeups/crypto/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Crypto
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../writeups/forensics/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Forensics
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../writeups/misc/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Misc
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+      
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_6" >
+        
+          
+          <label class="md-nav__link" for="__nav_6" id="__nav_6_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    General
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_6_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_6">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    General
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_6_1" >
+        
+          
+          <label class="md-nav__link" for="__nav_6_1" id="__nav_6_1_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Tamarin
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_6_1_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_6_1">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Tamarin
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../general/tamarin/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Tamarin Overview
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../general/tamarin_protocol_example/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Protocol Example
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#introduction" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Introduction
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#architecture-concepts" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Architecture Concepts
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Architecture Concepts">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#c-data-sizes-types" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        C Data Sizes &amp; Types
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#endianness" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Endianness
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Endianness">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#big-endian-standard-for-network-traffic" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Big Endian (Standard for Network Traffic)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#little-endian-standard-for-intelamd-x86" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Little Endian (Standard for Intel/AMD x86)
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#computer-memory-hierarchy" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Computer Memory Hierarchy
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#cpu-registers" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        CPU Registers
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="CPU Registers">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#register-breakdown-backward-compatibility" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Register Breakdown &amp; Backward Compatibility
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Register Breakdown &amp; Backward Compatibility">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#the-architecture-extension-legacy" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        The Architecture Extension Legacy
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#general-purpose-registers-gpr-cheat-sheet" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        General Purpose Registers (GPR) Cheat Sheet
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#process-creation-memory-management" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Process Creation &amp; Memory Management
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Process Creation &amp; Memory Management">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#virtual-memory-isolation" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Virtual Memory &amp; Isolation
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#process-memory-segments" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Process Memory Segments
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Process Memory Segments">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#1-text-segment-text" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1. Text Segment (.text)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#2-data-segment-data" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2. Data Segment (.data)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#3-bss-segment-bss" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3. BSS Segment (.bss)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#4-heap" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4. Heap
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#5-stack" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5. Stack
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#the-stack-internals" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        The Stack Internals
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="The Stack Internals">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#stack-frames" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Stack Frames
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#calling-conventions" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Calling Conventions
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Calling Conventions">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#system-v-amd64-abi-linux-macos-bsd" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        System-V AMD64 ABI (Linux, macOS, BSD)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#32-bit-x86-legacy-calling-conventions" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        32-Bit x86 Legacy Calling Conventions
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#stack-frame-linkage-prologue-epilogue" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Stack Frame Linkage (Prologue &amp; Epilogue)
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Stack Frame Linkage (Prologue &amp; Epilogue)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#the-function-prologue" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        The Function Prologue
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#core-assembly-instruction-set" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Core Assembly Instruction Set
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Core Assembly Instruction Set">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#nop-no-operation" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        NOP (No Operation)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#push-pop" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Push &amp; Pop
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#memory-addressing-forms-rmx" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Memory Addressing Forms (r/mX)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#data-sizing-qualifiers" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Data Sizing Qualifiers
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#call-ret" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Call &amp; Ret
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#syntax-standards-intel-vs-att" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Syntax Standards: Intel vs AT&amp;T
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Syntax Standards: Intel vs AT&amp;T">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#practical-syntax-comparison" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Practical Syntax Comparison
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#data-arithmetic-logic-instructions" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Data Arithmetic &amp; Logic Instructions
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Data Arithmetic &amp; Logic Instructions">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#mov-move" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        MOV (Move)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#add-sub" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        ADD &amp; SUB
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#imul-signed-multiplication" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        IMUL (Signed Multiplication)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#data-extension-instructions" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Data Extension Instructions
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#lea-load-effective-address" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        LEA (Load Effective Address)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#test-cmp" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        TEST &amp; CMP
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#bitwise-shifts-shl-shr-sar" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Bitwise Shifts (SHL, SHR, SAR)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#string-operations-rep-stos-rep-movs" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        String Operations (REP STOS, REP MOVS)
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#cpu-status-flags-control-flow" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        CPU Status Flags &amp; Control Flow
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="CPU Status Flags &amp; Control Flow">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#conditional-jumps-jcc" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Conditional Jumps (Jcc)
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#advanced-architecture-technicalities" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Advanced Architecture Technicalities
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Advanced Architecture Technicalities">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#32-bit-register-zero-extension-legacy" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        32-Bit Register Zero-Extension Legacy
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#stack-realignment-rules" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Stack Realignment Rules
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#windows-x64-calling-convention-the-shadow-store" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Windows x64 Calling Convention: The Shadow Store
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#high-level-code-translation-examples" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        High-Level Code Translation Examples
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="High-Level Code Translation Examples">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#array-construction-access-optimization" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Array Construction &amp; Access Optimization
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#struct-static-offset-mapping" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Struct Static Offset Mapping
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+
+<h1 id="x86-64-assembly-learning-guide">x86-64 Assembly Learning Guide</h1>
+<h2 id="introduction">Introduction</h2>
+<p>This document captures my learning journey through <strong>OpenSecurityTraining 1001: x86-64 Assembly</strong>. This guide serves as my personal reference for key concepts, instructions, and practical applications of x86-64 assembly language.</p>
+<hr />
+<h2 id="architecture-concepts">Architecture Concepts</h2>
+<h3 id="c-data-sizes-types">C Data Sizes &amp; Types</h3>
+<p>In x86-64 assembly, data types are directly associated with specific hardware word sizes:</p>
+<ul>
+<li><strong>Char:</strong> 1 Byte</li>
+<li><strong>Short / Word:</strong> 2 Bytes</li>
+<li><strong>Int / Long / Float <span class="arithmatex">\(\rightarrow\)</span> DWord (Double Word):</strong> 4 Bytes</li>
+<li><strong>Double / Long Long <span class="arithmatex">\(\rightarrow\)</span> QWord (Quad Word):</strong> 8 Bytes</li>
+<li><strong>Pointers (int *ptr):</strong> 4 Bytes on 32-bit systems, 8 Bytes on 64-bit systems.</li>
+</ul>
+<div class="admonition info">
+<p class="admonition-title">Union Memory Layout</p>
+<p>Inside a <code>union</code>, every member shares the exact same memory space. The total size allocated to the union corresponds to the size of its largest member type.</p>
+</div>
+<h3 id="endianness">Endianness</h3>
+<p>Endianness defines how bytes (not bits) are ordered and stored within system memory. Consider the 4-byte value <strong>0x12345678</strong>:</p>
+<h4 id="big-endian-standard-for-network-traffic">Big Endian (Standard for Network Traffic)</h4>
+<p>The most significant byte is stored first (at the lowest memory address).
+* Memory Layout: <code>0x12</code>, <code>0x34</code>, <code>0x56</code>, <code>0x78</code></p>
+<h4 id="little-endian-standard-for-intelamd-x86">Little Endian (Standard for Intel/AMD x86)</h4>
+<p>The least significant byte is stored first (at the lowest memory address).
+* Memory Layout: <code>0x78</code>, <code>0x56</code>, <code>0x34</code>, <code>0x12</code></p>
+<div class="admonition note">
+<p class="admonition-title">Registers vs RAM</p>
+<p>Endianness <strong>only</strong> applies when data is written to or read from RAM. Inside CPU registers, values are always represented in standard mathematical layout, meaning the most significant digits are always on the left. You must account for this discrepancy when interpreting raw bytes inside reverse engineering tools like Ghidra or IDA Pro.</p>
+</div>
+<h3 id="computer-memory-hierarchy">Computer Memory Hierarchy</h3>
+<p>Data access speeds vary drastically across the system layout. The memory hierarchy scales from fastest/smallest to slowest/largest:</p>
+<div class="arithmatex">\[\text{Processor Registers} \rightarrow \text{Processor Cache (L1/L2/L3)} \rightarrow \text{Random Access Memory (RAM)} \rightarrow \text{Flash/USB Memory} \rightarrow \text{Hard Drives (SSD/HDD)} \rightarrow \text{Tape Backup}\]</div>
+<p>When writing or reversing assembly, the vast majority of our low-level tracking happens directly within the <strong>Processor Registers</strong>.</p>
+<hr />
+<h2 id="cpu-registers">CPU Registers</h2>
+<p>Registers are high-speed, volatile storage cells built directly into the processor core. </p>
+<p>Intel architectures provide <strong>16 General Purpose Registers (GPRs)</strong> plus a specialized <strong>Instruction Pointer (RIP)</strong>, which continuously points to the <em>next</em> instruction queued for execution.</p>
+<ul>
+<li><strong>x86-32 (32-bit):</strong> Registers are 32 bits wide.</li>
+<li><strong>x86-64 (64-bit):</strong> Registers are extended to 64 bits wide.</li>
+</ul>
+<h3 id="register-breakdown-backward-compatibility">Register Breakdown &amp; Backward Compatibility</h3>
+<p>To maintain backward compatibility with older 16-bit and 32-bit processors, 64-bit registers can be accessed in smaller subdivisions.</p>
+<p>Taking the primary accumulator register <strong>RAX</strong> as an example:</p>
+<ul>
+<li><strong>RAX:</strong> The full 64-bit register.</li>
+<li><strong>EAX:</strong> The lower 32 bits of RAX. (Writing to EAX automatically zero-extends into the upper 32 bits of RAX).</li>
+<li><strong>AX:</strong> The lower 16 bits of RAX.</li>
+<li><strong>AH / AL:</strong> The high and low 8-bit slices of the 16-bit <code>AX</code> register.</li>
+</ul>
+<h4 id="the-architecture-extension-legacy">The Architecture Extension Legacy</h4>
+<p>The structural split exists because early architectures only had 8-bit or 16-bit registers (like <code>AX</code>). As computing shifted to 32-bit (<code>EAX</code>) and later 64-bit (<code>RAX</code>), the hardware designers simply wrapped the newer, wider registers around the legacy ones. </p>
+<p>For the newer registers introduced in x64 (<code>R8</code> through <code>R15</code>), a cleaner sizing convention is used:
+* <strong>R8:</strong> 64-bit (Quad Word)
+* <strong>R8D:</strong> 32-bit (Double Word)
+* <strong>R8W:</strong> 16-bit (Word)
+* <strong>R8B:</strong> 8-bit (Byte)</p>
+<h3 id="general-purpose-registers-gpr-cheat-sheet">General Purpose Registers (GPR) Cheat Sheet</h3>
+<p>While modern compilers use registers interchangeably for optimizations, standard software conventions give them dedicated roles:</p>
+<ul>
+<li><strong>RAX:</strong> Stores function return values.</li>
+<li><strong>RBX:</strong> Base pointer for data sections.</li>
+<li><strong>RCX:</strong> Loop counter for string and iteration operations.</li>
+<li><strong>RDX:</strong> I/O pointer and secondary data register.</li>
+<li><strong>RSI:</strong> Source Index pointer for string/stream operations.</li>
+<li><strong>RDI:</strong> Destination Index pointer for string/stream operations.</li>
+<li><strong>RSP:</strong> Stack Pointer (Points to the top item on the current stack frame).</li>
+<li><strong>RBP:</strong> Base Pointer (Points to the base of the current stack frame).</li>
+<li><strong>RIP:</strong> Instruction Pointer (Contains the memory address of the next execution step).</li>
+</ul>
+<hr />
+<h2 id="process-creation-memory-management">Process Creation &amp; Memory Management</h2>
+<p>When a static executable file (like an ELF binary on Linux or a PE <code>.exe</code> on Windows) is executed, the Operating System reads it from storage and maps its contents into system RAM. This mapping provides the CPU with high-speed access to the application instructions and structural runtime sections.</p>
+<h3 id="virtual-memory-isolation">Virtual Memory &amp; Isolation</h3>
+<p>To maintain application stability and security, the OS never exposes real <em>physical</em> RAM addresses directly to an application. Instead, it creates an abstraction layer called <strong>Virtual Address Space</strong>.</p>
+<p>This space provides each running process with the illusion that it has an independent, uninterrupted block of memory all to itself.</p>
+<ul>
+<li><strong>The Page Table:</strong> The OS manages a specialized translation directory called a Page Table. The CPU's hardware Memory Management Unit (MMU) uses this table to map continuous virtual addresses requested by the app into fragmented, discontinuous physical RAM locations on the fly. This avoids wasting memory resources.</li>
+</ul>
+<h3 id="process-memory-segments">Process Memory Segments</h3>
+<p>During process instantiation, the Virtual Memory Space is organized into standard logical segments, sorted here from lowest memory addresses to highest memory addresses:</p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>[LOW ADDRESSES]
+</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>├── Text Segment (Code)  --&gt; Read-Only, contains compiled machine code instructions.
+</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>├── Data Segment         --&gt; Read/Write, contains initialized global/static variables.
+</span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>├── BSS Segment          --&gt; Read/Write, contains uninitialized global/static variables (Zeroed out).
+</span><span id="__span-0-5"><a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a>├── Heap                 --&gt; Grows UPWARD towards higher addresses. Allocated at runtime.
+</span><span id="__span-0-6"><a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a>│
+</span><span id="__span-0-7"><a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a>▼
+</span><span id="__span-0-8"><a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a>
+</span><span id="__span-0-9"><a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a>▲
+</span><span id="__span-0-10"><a id="__codelineno-0-10" name="__codelineno-0-10" href="#__codelineno-0-10"></a>
+</span><span id="__span-0-11"><a id="__codelineno-0-11" name="__codelineno-0-11" href="#__codelineno-0-11"></a>├── Stack                --&gt; Grows DOWNWARD towards lower addresses. Stores local frames.
+</span><span id="__span-0-12"><a id="__codelineno-0-12" name="__codelineno-0-12" href="#__codelineno-0-12"></a>[HIGH ADDRESSES]
+</span></code></pre></div>
+<h4 id="1-text-segment-text">1. Text Segment (.text)</h4>
+<p>Contains the raw machine code instructions executed by the CPU. It is explicitly marked as <strong>Read-Only</strong> to prevent code injection attacks and can be shared among multiple instances of the same program to conserve RAM.</p>
+<h4 id="2-data-segment-data">2. Data Segment (.data)</h4>
+<p>Contains global and static variables that have been explicitly initialized with a value in the source code.
+* Example: <code>int counter = 10;</code> (declared outside of <code>main</code>)</p>
+<h4 id="3-bss-segment-bss">3. BSS Segment (.bss)</h4>
+<p>Contains global and static variables that are declared but not initialized to a value. 
+* Example: <code>int buffer[100];</code> (declared outside of <code>main</code>)
+* The OS automatically wipes this entire region with zeroes upon process boot.</p>
+<h4 id="4-heap">4. Heap</h4>
+<p>A dynamic, developer-managed memory pool allocated at runtime (via <code>malloc()</code> or <code>new</code>). The Heap boundary expands <strong>upward</strong> toward higher memory addresses.</p>
+<h4 id="5-stack">5. Stack</h4>
+<p>A highly ordered, hardware-managed memory pool used for tracking function execution blocks. The Stack boundary expands <strong>downward</strong> toward lower memory addresses.</p>
+<hr />
+<h2 id="the-stack-internals">The Stack Internals</h2>
+<p>The Stack operates as a strict <strong>Last In, First Out (LIFO)</strong> data structure. Data is added via a <code>PUSH</code> instruction and retrieved via a <code>POP</code> instruction. </p>
+<p>The stack space manages:
+1. <strong>Return Addresses:</strong> Saved pointers allowing execution to jump back to a calling function once the current function finishes.
+2. <strong>Local Variables:</strong> Storage for data arrays and variables scoped inside a function block.
+3. <strong>Saved CPU States:</strong> Register data preserved across function calls.</p>
+<div class="admonition key">
+<p class="admonition-title">Stack Growth Direction</p>
+<p>Because the stack grows downward toward lower memory addresses:
+* Executing a <code>PUSH</code> <strong>decrements</strong> the Stack Pointer (<code>RSP</code>).
+* Executing a <code>POP</code> <strong>increments</strong> the Stack Pointer (<code>RSP</code>).</p>
+</div>
+<h3 id="stack-frames">Stack Frames</h3>
+<p>A <strong>Stack Frame</strong> is a distinct block of memory on the stack allocated exclusively for a single function call. Its boundaries are traditionally managed by two registers: <code>RBP</code> (Base Pointer, marking the fixed start of the frame) and <code>RSP</code> (Stack Pointer, marking the fluid top of the frame).</p>
+<hr />
+<h2 id="calling-conventions">Calling Conventions</h2>
+<p>Since accessing RAM is significantly slower than executing operations within the CPU, 64-bit systems rely primarily on registers to pass arguments into functions quickly.</p>
+<h3 id="system-v-amd64-abi-linux-macos-bsd">System-V AMD64 ABI (Linux, macOS, BSD)</h3>
+<p>The first 6 arguments passed into a function are assigned to the following registers in order:</p>
+<div class="arithmatex">\[\text{1st: RDI} \quad \rightarrow \quad \text{2nd: RSI} \quad \rightarrow \quad \text{3rd: RDX} \quad \rightarrow \quad \text{4th: RCX} \quad \rightarrow \quad \text{5th: R8} \quad \rightarrow \quad \text{6th: R9}\]</div>
+<p>If a function requires more than 6 arguments, the remaining parameters are pushed onto the stack in <strong>reverse order</strong> (right-to-left) right before the <code>CALL</code> instruction is executed.</p>
+<h3 id="32-bit-x86-legacy-calling-conventions">32-Bit x86 Legacy Calling Conventions</h3>
+<p>On older 32-bit systems, registers are rarely used for parameter passing. Instead, <strong>all</strong> arguments are written directly onto the stack.
+* <strong>cdecl:</strong> The calling function is responsible for cleaning up arguments from the stack after the function finishes.
+* <strong>stdcall (Common in Windows API):</strong> The called function (the callee) is responsible for cleaning up the stack before returning.</p>
+<h3 id="stack-frame-linkage-prologue-epilogue">Stack Frame Linkage (Prologue &amp; Epilogue)</h3>
+<p>Every time a function is called, it executes a standard structural sequence to link its new stack frame with the caller's frame:</p>
+<h4 id="the-function-prologue">The Function Prologue</h4>
+<p>Sets up the environment for the new function.
+<div class="language-text highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>// push rbp          ; Save the old caller frame base pointer
+</span><span id="__span-1-2"><a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>// mov rbp, rsp      ; Set the new base pointer to the current top of the stack
+</span><span id="__span-1-3"><a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a>// sub rsp, 0X20     ; Allocate local variable space (decrements RSP)
+</span><span id="__span-1-4"><a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a>// [CODE BLOCK END]
+</span><span id="__span-1-5"><a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a>
+</span><span id="__span-1-6"><a id="__codelineno-1-6" name="__codelineno-1-6" href="#__codelineno-1-6"></a>#### The Function Epilogue
+</span><span id="__span-1-7"><a id="__codelineno-1-7" name="__codelineno-1-7" href="#__codelineno-1-7"></a>Restores the caller&#39;s environment right before exiting.
+</span><span id="__span-1-8"><a id="__codelineno-1-8" name="__codelineno-1-8" href="#__codelineno-1-8"></a>//
+</span><span id="__span-1-9"><a id="__codelineno-1-9" name="__codelineno-1-9" href="#__codelineno-1-9"></a>// mov rsp, rbp      ; Collapse the local stack space
+</span><span id="__span-1-10"><a id="__codelineno-1-10" name="__codelineno-1-10" href="#__codelineno-1-10"></a>// pop rbp           ; Restore the caller&#39;s base pointer
+</span><span id="__span-1-11"><a id="__codelineno-1-11" name="__codelineno-1-11" href="#__codelineno-1-11"></a>// ret               ; Pop the saved return address back into RIP
+</span></code></pre></div></p>
+<hr />
+<h2 id="core-assembly-instruction-set">Core Assembly Instruction Set</h2>
+<h3 id="nop-no-operation">NOP (No Operation)</h3>
+<p>An instruction that tells the CPU to do nothing for one clock cycle. It is represented by the opcode byte <strong>0x90</strong>.
+* NOP is technically an architectural alias for <code>XCHG EAX, EAX</code>.
+* It is commonly used for code alignment padding or to build robust "NOP sleds" within software exploit payloads.</p>
+<h3 id="push-pop">Push &amp; Pop</h3>
+<ul>
+<li><strong>PUSH:</strong> Decrements <code>RSP</code> (by 8 bytes in 64-bit mode), then writes the target operand value to the memory location now pointed to by <code>RSP</code>.</li>
+<li><strong>POP:</strong> Reads the value currently pointed to by <code>RSP</code>, writes it into the destination register, and then increments <code>RSP</code> (by 8 bytes in 64-bit mode). </li>
+</ul>
+<div class="admonition warning">
+<p class="admonition-title">Pop Data Behavior</p>
+<p>Executing a <code>POP</code> instruction <strong>does not wipe or delete</strong> the data from physical RAM. It merely shifts the <code>RSP</code> pointer upward, meaning the old value remains in dead memory until it is overwritten by a future stack operation.</p>
+</div>
+<h3 id="memory-addressing-forms-rmx">Memory Addressing Forms (<code>r/mX</code>)</h3>
+<p>In Intel syntax manuals, <code>r/mX</code> indicates that an operand can be either a raw <strong>register</strong> or a direct <strong>memory address</strong>. Memory dereferencing is denoted using square brackets <code>[]</code>, behaving exactly like standard pointer dereferencing in C.</p>
+<p>There are four primary structural forms for memory addressing:</p>
+<ol>
+<li><strong>Register:</strong> Direct target tracking.</li>
+<li><code>rbx</code></li>
+<li><strong>Direct Memory Pointer:</strong> Fetches the data stored at the memory address residing inside the register.</li>
+<li><code>[rbx]</code></li>
+<li><strong>Base + Index <span class="arithmatex">\(\times\)</span> Scale:</strong> Ideal for standard array tracking.</li>
+<li>Formula: <span class="arithmatex">\(\text{Address} = \text{Base} + (\text{Index} \times \text{Scale})\)</span></li>
+<li><code>[rbx + rcx * 4]</code> (Accesses a 4-byte integer array where <code>rbx</code> is the base pointer and <code>rcx</code> is the element index).</li>
+<li><strong>Base + Index <span class="arithmatex">\(\times\)</span> Scale + Displacement:</strong> Ideal for tracking arrays of data structures.</li>
+<li>Formula: <span class="arithmatex">\(\text{Address} = \text{Base} + (\text{Index} \times \text{Scale}) + \text{Displacement}\)</span></li>
+<li><code>[rbx + rcx * 8 + 0x20]</code> (Accesses an object member variable located at offset <code>0x20</code> within an array of 8-byte structures).</li>
+</ol>
+<h3 id="data-sizing-qualifiers">Data Sizing Qualifiers</h3>
+<p>When moving immediate values into raw memory pointers, you must explicitly specify the intended data size so the compiler knows how many bytes to write:
+<div class="language-text highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>// mov qword ptr [rsp], 0xdeadbeef   ; Writes a 8-byte Quad Word
+</span><span id="__span-2-2"><a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>// mov dword ptr [rsp], 0x12345678   ; Writes a 4-byte Double Word
+</span></code></pre></div></p>
+<h3 id="call-ret">Call &amp; Ret</h3>
+<ul>
+<li><strong>CALL:</strong> Executes a functional jump. It first pushes the address of the <em>next</em> instruction (the return address) onto the stack, then changes the Instruction Pointer (<code>RIP</code>) to the target function's entry address.</li>
+<li><strong>RET:</strong> Exits a function. It pops the top value off the stack directly back into <code>RIP</code>, returning execution control back to the caller.</li>
+</ul>
+<h3 id="syntax-standards-intel-vs-att">Syntax Standards: Intel vs AT&amp;T</h3>
+<table>
+<thead>
+<tr>
+<th style="text-align: left;">Feature</th>
+<th style="text-align: left;">Intel Syntax (NasM / Microsoft)</th>
+<th style="text-align: left;">AT&amp;T Syntax (GNU / GCC / Linux Default)</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: left;"><strong>Operand Order</strong></td>
+<td style="text-align: left;"><code>Opcode Destination, Source</code></td>
+<td style="text-align: left;"><code>Opcode Source, Destination</code></td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>Registers</strong></td>
+<td style="text-align: left;">No Prefix (<code>rax</code>)</td>
+<td style="text-align: left;">Requires <code>%</code> Prefix (<code>%rax</code>)</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>Immediate Values</strong></td>
+<td style="text-align: left;">No Prefix (<code>42</code>, <code>0x20</code>)</td>
+<td style="text-align: left;">Requires <code>$</code> Prefix (<code>$42</code>, <code>$0x20</code>)</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>Size Suffixes</strong></td>
+<td style="text-align: left;">Explicit descriptors (<code>qword ptr</code>)</td>
+<td style="text-align: left;">Appended opcode character (<code>movq</code>, <code>movl</code>)</td>
+</tr>
+</tbody>
+</table>
+<h4 id="practical-syntax-comparison">Practical Syntax Comparison</h4>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>// ; Intel Syntax Representation
+</span><span id="__span-3-2"><a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>// mov rax, 42
+</span><span id="__span-3-3"><a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a>// mov dword ptr [rbx], 0x10
+</span><span id="__span-3-4"><a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a>//
+</span><span id="__span-3-5"><a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a>// ; AT&amp;T Syntax Representation
+</span><span id="__span-3-6"><a id="__codelineno-3-6" name="__codelineno-3-6" href="#__codelineno-3-6"></a>// movq $42, %rax
+</span><span id="__span-3-7"><a id="__codelineno-3-7" name="__codelineno-3-7" href="#__codelineno-3-7"></a>// movl $0x10, (%rbx)
+</span></code></pre></div>
+<h3 id="data-arithmetic-logic-instructions">Data Arithmetic &amp; Logic Instructions</h3>
+<h4 id="mov-move">MOV (Move)</h4>
+<p>Copies data from a source operand to a destination operand.
+* <strong>Crucial Architecture Rule:</strong> x86-64 hardware <strong>does not allow</strong> direct memory-to-memory transfers within a single <code>MOV</code> instruction. To move data from one RAM location to another, you must route it through an intermediate CPU register.</p>
+<h4 id="add-sub">ADD &amp; SUB</h4>
+<p>Performs binary addition or subtraction, updating destination registers and setting processor status flags (<code>ZF</code>, <code>SF</code>, <code>CF</code>, <code>OF</code>).</p>
+<h4 id="imul-signed-multiplication">IMUL (Signed Multiplication)</h4>
+<p>Multiplies signed integers. It features three operational formats:
+1. <code>imul r/m64</code> <span class="arithmatex">\(\rightarrow\)</span> Multiplies <code>RAX</code> by the operand. Stores the 128-bit result split across <code>RDX:RAX</code>.
+2. <code>imul r64, r/m64</code> <span class="arithmatex">\(\rightarrow\)</span> Multiplies the destination register by the source operand in place.
+3. <code>imul r64, r/m64, imm8</code> <span class="arithmatex">\(\rightarrow\)</span> Multiplies the second operand by an immediate value, writing the result to the target register.</p>
+<h4 id="data-extension-instructions">Data Extension Instructions</h4>
+<p>When moving smaller data types into larger registers, you must manage the remaining high-order bits:
+* <strong>Sign Extension (<code>MOVSX</code>):</strong> Copies the original sign bit (the highest bit) across all the newly added upper bits. This preserves the accurate value of negative signed numbers.
+* <strong>Zero Extension (<code>MOVZX</code>):</strong> Unconditionally fills all upper bits with <code>0</code>. This is used when casting unsigned data types.</p>
+<h4 id="lea-load-effective-address">LEA (Load Effective Address)</h4>
+<p>Though <code>LEA</code> uses square brackets (<code>[]</code>), it <strong>never dereferences memory</strong>. Instead, it calculates the raw mathematical address inside the brackets and saves that address directly to the destination register.
+* Example: <code>lea rax, [rdx + rbx * 8 + 5]</code> reads as: <span class="arithmatex">\(\text{rax} = \text{rdx} + (\text{rbx} \times 8) + 5\)</span>.
+* It is frequently leveraged by optimizing compilers to run rapid, single-cycle algebraic math equations without altering CPU status flags.</p>
+<h4 id="test-cmp">TEST &amp; CMP</h4>
+<ul>
+<li><strong>CMP:</strong> Subtracts the second operand from the first operand (identical to <code>SUB</code>), evaluates the outcome to alter CPU status flags, and then <strong>discards the calculation result</strong>.</li>
+<li><strong>TEST:</strong> Performs a bitwise <code>AND</code> calculation between two operands, modifies status flags (<code>ZF</code>, <code>SF</code>), and <strong>discards the calculation result</strong>. Commonly used to check if a register is empty or null via <code>test rax, rax</code>.</li>
+</ul>
+<h4 id="bitwise-shifts-shl-shr-sar">Bitwise Shifts (<code>SHL</code>, <code>SHR</code>, <code>SAR</code>)</h4>
+<ul>
+<li><code>SHL</code> / <code>SHR</code> shift bits left or right, padding empty spaces with <code>0</code>. Optimizing compilers utilize these as fast alternatives for multiplying or dividing unsigned values by powers of two (<span class="arithmatex">\(2^n\)</span>).</li>
+<li><code>SAR</code> (Shift Arithmetic Right) shifts bits right but <strong>retains the original sign bit</strong> in the highest position, preserving negative values during division optimization.</li>
+</ul>
+<h4 id="string-operations-rep-stos-rep-movs">String Operations (<code>REP STOS</code>, <code>REP MOVS</code>)</h4>
+<p>Instructions utilizing the <code>REP</code> prefix use the <code>RCX</code> register as an automated countdown loop mechanism.
+* <strong>REP STOS:</strong> Fills a block of memory with a constant value (the assembly equivalent of <code>memset</code>). It writes data from <code>RAX</code> into the destination address pointed to by <code>RDI</code>, decrementing <code>RCX</code> on each iteration.
+* <strong>REP MOVS:</strong> Copies a block of memory from a source to a destination (the assembly equivalent of <code>memcpy</code>). It reads data from <code>[RSI]</code> and writes it to <code>[RDI]</code>, looping for <code>RCX</code> iterations.</p>
+<hr />
+<h2 id="cpu-status-flags-control-flow">CPU Status Flags &amp; Control Flow</h2>
+<p>The <strong>RFLAGS</strong> (64-bit) or <strong>EFLAGS</strong> (32-bit) register contains individual bit status indicators updated automatically after arithmetic execution. Conditional jump instructions inspect these flags to branch execution.</p>
+<ul>
+<li><strong>Zero Flag (<code>ZF</code>):</strong> Set to <code>1</code> if the output of an operation is exactly zero.</li>
+<li><strong>Sign Flag (<code>SF</code>):</strong> Set to <code>1</code> if the output of an operation is negative (highest bit is a 1).</li>
+<li><strong>Carry Flag (<code>CF</code>):</strong> Set to <code>1</code> if an unsigned calculation required a carry or borrow operation.</li>
+<li><strong>Overflow Flag (<code>OF</code>):</strong> Set to <code>1</code> if a signed calculation output exceeded the register's limits.</li>
+</ul>
+<h3 id="conditional-jumps-jcc">Conditional Jumps (<code>Jcc</code>)</h3>
+<p>Conditional jumps evaluate different combinations of flags based on whether you are analyzing <strong>signed</strong> or <strong>unsigned</strong> variables:</p>
+<table>
+<thead>
+<tr>
+<th style="text-align: left;">Context</th>
+<th style="text-align: left;">Jump Instructions</th>
+<th style="text-align: left;">Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: left;"><strong>Generic</strong></td>
+<td style="text-align: left;"><code>JE</code> / <code>JNE</code></td>
+<td style="text-align: left;">Jump if Equal (<code>ZF=1</code>) / Not Equal (<code>ZF=0</code>)</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>Signed</strong></td>
+<td style="text-align: left;"><code>JG</code> / <code>JL</code></td>
+<td style="text-align: left;">Jump if <strong>Greater</strong> / Jump if <strong>Less</strong></td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>Unsigned</strong></td>
+<td style="text-align: left;"><code>JA</code> / <code>JB</code></td>
+<td style="text-align: left;">Jump if <strong>Above</strong> / Jump if <strong>Below</strong></td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="advanced-architecture-technicalities">Advanced Architecture Technicalities</h2>
+<h3 id="32-bit-register-zero-extension-legacy">32-Bit Register Zero-Extension Legacy</h3>
+<p>For structural legacy reasons, when you execute a 32-bit instruction that modifies a 32-bit register slice (like <code>EAX</code>), the CPU automatically <strong>wipes the upper 32 bits of the parent 64-bit register (<code>RAX</code>) with zeroes</strong>. </p>
+<p>Crucially, this automatic zero-extension <strong>does not happen</strong> when writing to 8-bit (<code>AL</code>) or 16-bit (<code>AX</code>) register slices. Security engineers leverage this quirk to find or construct gadget payloads during Return-Oriented Programming (ROP) exploitation.</p>
+<h3 id="stack-realignment-rules">Stack Realignment Rules</h3>
+<p>According to the x86-64 Application Binary Interface (ABI) standard, the Stack Pointer (<code>RSP</code>) must always be <strong>16-byte aligned</strong> right before a <code>CALL</code> instruction is executed. If you observe a compiler injecting seemingly arbitrary addition or subtraction padding on <code>RSP</code> that doesn't relate to local variables, it is executing a mandatory stack pointer alignment.</p>
+<h3 id="windows-x64-calling-convention-the-shadow-store">Windows x64 Calling Convention: The Shadow Store</h3>
+<p>Unlike Unix platforms, the Windows x64 calling convention allocates a mandatory <strong>32-byte (4 Quad-Words) "Shadow Store"</strong> on the stack directly preceding any function call. </p>
+<p>The caller must explicitly drop <code>RSP</code> to reserve this space even if the target function takes zero parameters. The called function utilizes this reserved shadow space to temporarily save the four primary incoming argument registers (<code>RCX</code>, <code>RDX</code>, <code>R8</code>, <code>R9</code>) if it needs to loop through variable argument structures (like <code>printf</code>).</p>
+<hr />
+<h2 id="high-level-code-translation-examples">High-Level Code Translation Examples</h2>
+<h3 id="array-construction-access-optimization">Array Construction &amp; Access Optimization</h3>
+<p>Consider this standard C code snippet:
+<div class="language-text highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a>// short a;
+</span><span id="__span-4-2"><a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a>// int b[6];
+</span><span id="__span-4-3"><a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a>// a = 0xBABE;
+</span><span id="__span-4-4"><a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a>// b[1] = a;
+</span></code></pre></div></p>
+<p>An optimizing compiler translates the indexing calculation (<span class="arithmatex">\(\text{Offset} = \text{Index} \times \text{Sizeof(Type)}\)</span>) into a combination of sign extensions and direct displacements:</p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a>// mov eax, 0xFFFFBABE        ; Loads the immediate value into EAX (Sign-extended short)
+</span><span id="__span-5-2"><a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a>// mov [rbp - 0x10 + 4], eax  ; Writes directly to array address b[1] (Offset 4 bytes from base)
+</span></code></pre></div>
+<h3 id="struct-static-offset-mapping">Struct Static Offset Mapping</h3>
+<p>Data structures are mapped linearly within memory based on the size of their elements. Take this C structure:</p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-6-1"><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a>// struct User {
+</span><span id="__span-6-2"><a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a>//     int id;         // Offset +0x0 (Size: 4 bytes)
+</span><span id="__span-6-3"><a id="__codelineno-6-3" name="__codelineno-6-3" href="#__codelineno-6-3"></a>//     int role;       // Offset +0x4 (Size: 4 bytes)
+</span><span id="__span-6-4"><a id="__codelineno-6-4" name="__codelineno-6-4" href="#__codelineno-6-4"></a>//     char pass[8];   // Offset +0x8 (Size: 8 bytes)
+</span><span id="__span-6-5"><a id="__codelineno-6-5" name="__codelineno-6-5" href="#__codelineno-6-5"></a>// };
+</span></code></pre></div>
+<p>When interacting with an instance of this structure via a base pointer inside <code>RBX</code>, the disassembler reveals direct static displacements mapping to each member variable layout:</p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-7-1"><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a>// mov eax, [rbx]        ; Accesses User.id (Offset 0)
+</span><span id="__span-7-2"><a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a>// mov ecx, [rbx + 0x4]  ; Accesses User.role (Offset 4)
+</span><span id="__span-7-3"><a id="__codelineno-7-3" name="__codelineno-7-3" href="#__codelineno-7-3"></a>// mov rdx, [rbx + 0x8]  ; Accesses User.pass (Offset 8)
+</span></code></pre></div>
+
+
+
+
+
+
+
+  
+  
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "../../..", "features": ["navigation.tabs", "navigation.sections", "navigation.indexes", "search.suggest", "content.code.copy"], "search": "../../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+    
+    
+      <script src="../../../assets/javascripts/bundle.79ae519e.min.js"></script>
+      
+        <script src="https://unpkg.com/mathjax@3/es5/tex-mml-chtml.js"></script>
+      
+    
+  </body>
+</html>
