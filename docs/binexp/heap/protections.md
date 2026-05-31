@@ -33,9 +33,9 @@ To prevent a chunk from being freed twice into the same tcache bin, glibc places
 
 ### Bypass Strategy
 
-- **Key Corruption (UAF):** The most direct bypass utilizes a Use-After-Free (UAF) vulnerability. After the first `free()`, the attacker uses the dangling pointer to overwrite the `key` field with garbage data (e.g., $0$). The subsequent `free()` will not trigger the list traversal, allowing the double free.
+- **Key Corruption (UAF):** The most direct bypass utilizes a Use-After-Free (UAF) vulnerability. After the first `free()`, use the dangling pointer to overwrite the `key` field with garbage data (e.g., $0$). The subsequent `free()` will not trigger the list traversal, allowing the double free.
 
-- **Bin Eviction:** An attacker can allocate and free other chunks to fill the target tcache bin (reaching the 7-chunk limit). Once full, the target chunk will be freed into a Fastbin or Unsorted Bin, bypassing the tcache-specific checks.
+- **Bin Eviction:** Allocate and free other chunks to fill the target tcache bin (reaching the 7-chunk limit). Once full, the target chunk will be freed into a Fastbin or Unsorted Bin, bypassing the tcache-specific checks.
 
 ---
 
@@ -54,7 +54,7 @@ Bypassing the safe unlink check requires a known pointer to the victim chunk (of
 
 - **Fake Chunk Forgery:** Craft a fake chunk payload within the victim chunk.
 
-- **Pointer Alignment:** The attacker sets $fd = Target\_Address - 0x18$ (on 64-bit architecture) and $bk = Target\_Address - 0x10$.
+- **Pointer Alignment:** Sets $fd = Target\_Address - 0x18$ (on 64-bit architecture) and $bk = Target\_Address - 0x10$.
 
 - **Execution:** When the unlink operation evaluates the state, the integrity checks pass because the calculated offsets at the target address point back to the fake chunk. This results in the target pointer being overwritten, granting an arbitrary write primitive.
 
