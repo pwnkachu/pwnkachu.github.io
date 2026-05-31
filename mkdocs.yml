@@ -80,6 +80,7 @@ nav:
     - Tamarin:
       - Tamarin Overview: general/tamarin.md
       - Protocol Example: general/tamarin_protocol_example.md
+      - Protocol Modeling: general/tamarin_modeling.md
 
 markdown_extensions:
   - admonition

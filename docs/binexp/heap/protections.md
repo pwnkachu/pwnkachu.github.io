@@ -18,9 +18,9 @@ $Masked\_Pointer = (Chunk\_Address \gg 12) \oplus Target\_Pointer$
 ### Bypass Strategy
 Safe Linking is deterministic and relies entirely on the secrecy of the heap base address. 
 
-- **Heap Leak:** An attacker must first achieve a heap leak. If an attacker reads the `fd` pointer of the last chunk in a tcache list (which theoretically points to `NULL` or $0$), the masked value in memory directly reveals the shift: $(Chunk\_Address \gg 12)$.
+- **Heap Leak:**  Must first achieve a heap leak. If an attacker reads the `fd` pointer of the last chunk in a tcache list (which points to `NULL` or $0$), the masked value in memory directly reveals the shift: $(Chunk\_Address \gg 12)$.
 
-- **De-obfuscation:** With the shifted chunk address known, the attacker can reverse the XOR operation mathematically to decode valid pointers or forge new masked pointers pointing to arbitrary memory locations.
+- **De-obfuscation:** With the shifted chunk address known, One can reverse the XOR operation mathematically to decode valid pointers or forge new masked pointers pointing to arbitrary memory locations.
 
 ---
 
@@ -59,3 +59,29 @@ Bypassing the safe unlink check requires a known pointer to the victim chunk (of
 - **Execution:** When the unlink operation evaluates the state, the integrity checks pass because the calculated offsets at the target address point back to the fake chunk. This results in the target pointer being overwritten, granting an arbitrary write primitive.
 
 ---
+
+## FastBins Size check
+
+### Mechanism 
+
+Before removing a chunk from a fastbin glibc will execute a check on the size of the chunk. If the chunk that is going to be returned has a size that is not equivalent to the size of the bin a crash will be caused. This mitigate a lot of fd poisoning techniques on fastbins due to the fact that Arbitrary crafted chunks will often cause a crash due to bad size field.
+
+```
+if (__builtin_expect (fastbin_index (chunksize (victim)) != idx, 0))
+            {
+              errstr = "malloc(): memory corruption (fast)";
+            errout:
+              malloc_printerr (check_action, errstr, chunk2mem (victim), av);
+              return NULL;
+            }
+```
+
+### Bypass Strategy
+
+In order to bypass this strategy, we should jump to an address which contain a valide size (a full 8 byte size_t) that is large as enough to fit the chunk that we want to hijack. It is notable to say that the chunks don't need to be aligned at 16 bytes. Also if we are trying to jump to libc, we shoul try to look to the size `0x70` as it will accept libc pointers next to a zero in memory.
+
+Common place in which we can jump are `__malloc_hook, _IO_2_1_stdout, __dso_handle`. I will not list any techniques that's based on malloc_hooks, but if interested one can visit: 
+[baby_heap](https://github.com/hoppersroppers/nightmare/blob/master/modules/7-Heap/28-fastbin_attack/0ctf_babyheap/readme.md)
+that uses malloc hook with a one_gadget.
+
+We can also perform a [fastbin poison chain attacks](https://hazyclimb.dev/posts/fastbin-poison-chains/)
