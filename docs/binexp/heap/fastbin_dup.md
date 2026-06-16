@@ -14,9 +14,8 @@ While Duplication specifically refers to tricking the allocator by freeing the s
 The main problem is that glibc performs a fastbin size sanity check on every chunk being retrieved.
 
 When you request a chunk, the allocator looks at the chunk it is about to hand over (the one at our forged fd address) and checks its size metadata. If the size field of our fake target chunk does not fall into the exact same size class as the fastbin we are pulling from, glibc throws a malloc(): memory corruption (fast) error and crashes the program.
-Bypass Strategy 1: The Misaligned Fake Chunk
 
-To bypass this mechanism directly, we need to forge an fd that points to an address where the existing bytes in memory coincidentally look like a valid size field.
+- To bypass this mechanism directly, we need to forge an fd that points to an address where the existing bytes in memory coincidentally look like a valid size field.
 
 - Misalignment: Chunks don't strictly need to be perfectly 8-byte or 16-byte aligned when coming out of a fastbin. We can shift our target pointer back and forth by a few bytes until we frame a byte that matches our fastbin size.
 

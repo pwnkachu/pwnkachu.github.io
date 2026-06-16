@@ -286,37 +286,38 @@ This consolidation is performed from `free()` every time that a chunk that will 
 
 When an application calls `malloc(size)`, the allocator executes a strict sequence of steps. The search stops as soon as a suitable chunk is found.
 
-1. **Request Normalization:**
-   The allocator never looks for the exact size requested by the user. It adds the necessary space for metadata (minimum 8 or 16 bytes) and rounds the result up to respect CPU alignment (multiples of 16 bytes on 64-bit systems). If a user asks for 12 bytes, `malloc` will look for a 32-byte chunk.
-   *If the request is abnormally large (e.g., hundreds of Kilobytes), `malloc` bypasses all bins and directly uses `mmap()` to request memory from the kernel.*
+### 1. Request Normalization
+The allocator never looks for the exact size requested by the user. It adds the necessary space for metadata (minimum 8 or 16 bytes) and rounds the result up to respect CPU alignment (multiples of 16 bytes on 64-bit systems). If a user asks for 12 bytes, `malloc` will look for a 32-byte chunk.
 
-2. **Tcache Search:**
-   `malloc` calculates the Tcache index corresponding to the requested size. If the Tcache bin has at least one chunk available, it removes it from the head of the list (LIFO), updates the pointers, and returns it to the user. *No arena lock is acquired.*
+> *If the request is abnormally large (e.g., hundreds of Kilobytes), `malloc` bypasses all bins and directly uses `mmap()` to request memory from the kernel.*
 
-3. **Fastbins Search:**
-   If the Tcache is empty but the size falls within the Fastbins range (default < 128 bytes), `malloc` checks the corresponding Fastbin. If it finds available chunks, it takes one. Furthermore, to optimize future allocations, **it empties the rest of that Fastbin and moves the remaining chunks into the thread's Tcache**, then returns the requested chunk to the user. The displacement is performed from the head of the fastbin and it's stopped if the tcache becomes full. `tcache->counts[tc_idx] < mp_.tcache_count`
+### 2. Tcache Search
+`malloc` calculates the Tcache index corresponding to the requested size. If the Tcache bin has at least one chunk available, it removes it from the head of the list (LIFO), updates the pointers, and returns it to the user. *No arena lock is acquired.*
 
-4. **Small Bins Search:**
-   If the size falls into the Small category (and fast paths failed), the allocator checks the exact associated Small Bin. If it contains a chunk, it is unlinked from the doubly linked list (FIFO) and returned. As in Fastbins Search, the allocator will **empty the rest of that Small Bin and moves the remaining chunks into the thread's Tcache**. 
+### 3. Fastbins Search
+If the Tcache is empty but the size falls within the Fastbins range (default < 128 bytes), `malloc` checks the corresponding Fastbin. If it finds available chunks, it takes one. Furthermore, to optimize future allocations, **it empties the rest of that Fastbin and moves the remaining chunks into the thread's Tcache**, then returns the requested chunk to the user. The displacement is performed from the head of the fastbin and it's stopped if the tcache becomes full: `tcache->counts[tc_idx] < mp_.tcache_count`
 
-5. **Consolidation (size >= 1024):**
-   If the request is for a *Large* size (>= 1024 bytes), `malloc` knows it will have to perform a complex search. Before doing so, it invokes `malloc_consolidate()` to empty all Fastbins, merge adjacent fragments into the unsorted bin, and place them in the Unsorted Bin, hoping to create a block large enough.
+### 4. Small Bins Search
+If the size falls into the Small category (and fast paths failed), the allocator checks the exact associated Small Bin. If it contains a chunk, it is unlinked from the doubly linked list (FIFO) and returned. As in Fastbins Search, the allocator will **empty the rest of that Small Bin and moves the remaining chunks into the thread's Tcache**. 
 
-6. **Unsorted Bin :**
-   If the previous steps fail, `malloc` starts scanning the Unsorted Bin from start to finish (FIFO):
-   - **Exact match:** If it finds a chunk of the perfect size, it returns it immediately.
-   - **Partial match (Splitting):** If it finds a chunk *larger* than needed, it splits it. It returns the requested portion to the user and turns the remainder into a new free chunk, which is put back into the Unsorted Bin.
-   - **Sorting:** If an inspected chunk does not fit, **it is not left in the Unsorted Bin**. `malloc` unlinks it and inserts it into the appropriate Small Bin or Large Bin. *This is the only time Small and Large Bins are populated.*. If the request was inside the tcache size, the sorting also stash the chunk into the tcache.
+### 5. Consolidation (size >= 1024)
+If the request is for a *Large* size (>= 1024 bytes), `malloc` knows it will have to perform a complex search. Before doing so, it invokes `malloc_consolidate()` to empty all Fastbins, merge adjacent fragments into the unsorted bin, and place them in the Unsorted Bin, hoping to create a block large enough.
 
-7. **Large Bins:**
-   If the request was Large, after sorting the Unsorted Bin, `malloc` searches the corresponding Large Bin. Using the `fd_nextsize` and `bk_nextsize` pointers, it skips through the blocks to find the *best fit* (the smallest block that is still large enough). Again, if the found block is too large, it is split, and the remainder goes into the Unsorted Bin.
+### 6. Unsorted Bin
+If the previous steps fail, `malloc` starts scanning the Unsorted Bin from start to finish (FIFO):
 
-8. **Extraction from Top Chunk:**
-   If all bins fail, the allocator turns to the Top Chunk (the large block of memory at the top of the heap bordering unmapped space). If the Top Chunk is large enough, it slices a piece off and returns it.
+* **Exact match:** If it finds a chunk of the perfect size, it returns it immediately.
+* **Partial match (Splitting):** If it finds a chunk *larger* than needed, it splits it. It returns the requested portion to the user and turns the remainder into a new free chunk, which is put back into the Unsorted Bin.
+* **Sorting:** If an inspected chunk does not fit, **it is not left in the Unsorted Bin**. `malloc` unlinks it and inserts it into the appropriate Small Bin or Large Bin. *This is the only time Small and Large Bins are populated.* If the request was inside the tcache size, the sorting also stashes the chunk into the tcache.
 
-9. **OS Request (`sysmalloc`):**
-   If even the Top Chunk is exhausted or too small, `malloc` is forced to ask the kernel for new memory. It makes a *syscall* (`sbrk` to expand the Top Chunk, or `mmap` to allocate a completely new area) and finally serves the request.
+### 7. Large Bins
+If the request was Large, after sorting the Unsorted Bin, `malloc` searches the corresponding Large Bin. Using the `fd_nextsize` and `bk_nextsize` pointers, it skips through the blocks to find the *best fit* (the smallest block that is still large enough). Again, if the found block is too large, it is split, and the remainder goes into the Unsorted Bin.
 
+### 8. Extraction from Top Chunk
+If all bins fail, the allocator turns to the Top Chunk (the large block of memory at the top of the heap bordering unmapped space). If the Top Chunk is large enough, it slices a piece off and returns it.
+
+### 9. OS Request (`sysmalloc`)
+If even the Top Chunk is exhausted or too small, `malloc` is forced to ask the kernel for new memory. It makes a *syscall* (`sbrk` to expand the Top Chunk, or `mmap` to allocate a completely new area) and finally serves the request.
 
 ![Malloc Overview](images/Malloc_Overview.png)
 
@@ -326,37 +327,39 @@ When an application calls `malloc(size)`, the allocator executes a strict sequen
 
 When the application calls `free(ptr)`, the goal of `glibc` is to reclaim the block as quickly as possible, merging it with other blocks only if strictly necessary to combat fragmentation.
 
-1. **Validation and Sanity Checks:**
-   `free` does not trust the passed pointer blindly. It checks that:
-   - The pointer is correctly aligned in memory.
-   - The chunk does not exceed the physical limits of the arena.
-   - The chunk is not the same one returned by an immediately preceding `free` call (basic *Double Free* check).
-   - If the chunk has the `IS_MMAPPED` (M) bit set to 1, `free` ignores the heap and directly calls the `munmap()` syscall to return the memory pages to the kernel.
+### 1. Validation and Sanity Checks
+`free` does not trust the passed pointer blindly. It checks that:
+* The pointer is correctly aligned in memory.
+* The chunk does not exceed the physical limits of the arena.
+* The chunk is not the same one returned by an immediately preceding `free` call (basic *Double Free* check).
+* If the chunk has the `IS_MMAPPED` (M) bit set to 1, `free` ignores the heap and directly calls the `munmap()` syscall to return the memory pages to the kernel.
 
-2. **Insertion into Tcache:**
-   If the chunk size is compatible with the Tcache and the corresponding bin is not full (< 7 elements):
-   - **Security:** A check is performed on the chunk's `key` to detect complex *Double Free* attempts within the same bin.
-   - The `fd` pointer is written into the data space to point to the current head of the list.
-   - The chunk becomes the new head of the Tcache (LIFO). *The process ends here.*
+### 2. Insertion into Tcache
+If the chunk size is compatible with the Tcache and the corresponding bin is not full (< 7 elements):
+* **Security:** A check is performed on the chunk's `key` to detect complex *Double Free* attempts within the same bin.
+* The `fd` pointer is written into the data space to point to the current head of the list.
+* The chunk becomes the new head of the Tcache (LIFO). *The process ends here.*
 
-3. **Insertion into Fastbins:**
-   If the Tcache is full or disabled, but the chunk falls within the fastbin threshold (e.g., < 128 bytes):
-   - **Security:** It checks that the chunk at the top of the list is not the same one being freed (Partial Double Free protection).
-   - The block is inserted at the head of the Fastbin (LIFO).
-   - The `PREV_INUSE` bit of the physically next block in memory is *not* altered. To the memory, this chunk still appears allocated, preventing any coalescence. *The process ends here.*
+### 3. Insertion into Fastbins
+If the Tcache is full or disabled, but the chunk falls within the fastbin threshold (e.g., < 128 bytes):
+* **Security:** It checks that the chunk at the top of the list is not the same one being freed (Partial Double Free protection).
+* The block is inserted at the head of the Fastbin (LIFO).
+* The `PREV_INUSE` bit of the physically next block in memory is *not* altered. To the memory, this chunk still appears allocated, preventing any coalescence. *The process ends here.*
 
-4. **Coalescence in the Unsorted Bin:**
-   If the block is larger than the fastbins, it must be placed into the Unsorted Bin. Before doing so, `free` tries to merge it with its physical neighbors to create a larger block:
-   - **Backward Coalesce:** It checks its own `PREV_INUSE` flag. If it is `0`, it means the physically previous block is free. `free` reads the `prev_size` field, jumps back to the header of the previous block, unlinks it from its current bin, and merges the two chunks by combining their sizes.
-   - **Forward Coalesce:** It checks the state of the physically next block (by reading the header of the chunk after that to see its `PREV_INUSE`). If the next block is free, it merges it too. If the next block is the **Top Chunk**, the chunk being freed is simply merged directly into the Top Chunk and the operation ends (it is not placed in any bin).
+### 4. Coalescence in the Unsorted Bin
+If the block is larger than the fastbins, it must be placed into the Unsorted Bin. Before doing so, `free` tries to merge it with its physical neighbors to create a larger block:
 
-5. **Insertion into the Unsorted Bin:**
-   If the chunk resulting from the merges (or the original chunk if no merges occurred) does not border the Top Chunk, it is inserted at the beginning of the Unsorted Bin's doubly linked list (FIFO).
-   - The `PREV_INUSE` bit of the next chunk is set to `0`.
-   - The `prev_size` field of the next chunk is updated with the new size of this free block.
+* **Backward Coalesce:** It checks its own `PREV_INUSE` flag. If it is `0`, it means the physically previous block is free. `free` reads the `prev_size` field, jumps back to the header of the previous block, unlinks it from its current bin, and merges the two chunks by combining their sizes.
 
-6. **Heap Trimming:**
-   If, after a coalescence with the Top Chunk, the total size of the Top Chunk exceeds a certain threshold (typically 128 KB), `free` internally calls `systrim()`. This process attempts to return the excess memory at the top of the heap directly to the operating system via `sbrk` with negative values, lowering the memory footprint of the process.
+* **Forward Coalesce:** It checks the state of the physically next block (by reading the header of the chunk after that to see its `PREV_INUSE`). If the next block is free, it merges it too. If the next block is the **Top Chunk**, the chunk being freed is simply merged directly into the Top Chunk and the operation ends (it is not placed in any bin).
+
+### 5. Insertion into the Unsorted Bin
+If the chunk resulting from the merges (or the original chunk if no merges occurred) does not border the Top Chunk, it is inserted at the beginning of the Unsorted Bin's doubly linked list (FIFO).
+* The `PREV_INUSE` bit of the next chunk is set to `0`.
+* The `prev_size` field of the next chunk is updated with the new size of this free block.
+
+### 6. Heap Trimming
+If, after a coalescence with the Top Chunk, the total size of the Top Chunk exceeds a certain threshold (typically 128 KB), `free` internally calls `systrim()`. This process attempts to return the excess memory at the top of the heap directly to the operating system via `sbrk` with negative values, lowering the memory footprint of the process.
 
 Sources :
 
