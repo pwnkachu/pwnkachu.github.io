@@ -53,6 +53,7 @@ Analyze dynamically allocated memory chunks and metadata.
 * **`heap`**: Displays general information about the heap arenas and currently allocated chunks.
 * **`bins`**: Shows the current state of the heap bins (tcache, fastbins, unsorted, small, large), crucial for Use-After-Free or Double Free attacks.
 * **`vis`**: Visually maps out the heap layout, showing chunk boundaries, sizes, and metadata in an easy-to-read format.
+* **`find-fake-fast &addr`** Search an usable index for fastbin duplication near the memory address `&addr`. 
 
 
 ## Examining Memory in GDB/pwndbg

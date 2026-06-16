@@ -85,3 +85,38 @@ Common place in which we can jump are `__malloc_hook, _IO_2_1_stdout, __dso_hand
 that uses malloc hook with a one_gadget.
 
 We can also perform a [fastbin poison chain attacks](https://hazyclimb.dev/posts/fastbin-poison-chains/)
+
+## Glibc ASLR Bypass with heap
+
+Glibc can be leaked from the main_arena struct, this is useful because we can obtain the libc address from an heap vulnerability. The main mechanism is based on double-linked list, such as the unsorted bin or small bins. Those bins wll have both the bk and fd pointer, and those pointers will contain a pointer to the main_arena struct, that will tell us the libc address. In order to do so we must have a way to allocate an unsorted-bin size chunk. This can be done in several ways:
+
+- Direct Allocation & Freeing: Allocate a chunk large enough so that it doesn't fit into the tcache or fastbins (greater than 0x408 bytes, or you can allocate 7 smaller chunks and free them to fill the tcache first). When you free this large chunk, it drops straight into the unsorted bin.
+
+- Chunk Overlap / Consolidation: Trick the heap into consolidating multiple adjacent smaller chunks into one massive chunk that qualifies for the unsorted bin, or use a heap overflow to stretch the size of a chunk before freeing it.
+
+### Chunk Consolidation Example
+
+When dealing with smaller chunks that would normally get swallowed by the tcache or fastbins, we can use a heap overflow to forge chunk metadata. By tricking the allocator into thinking the previous chunk is free, freeing the current chunk will trigger backward consolidation. The resulting merged chunk is usually large enough to bypass tcache entirely and drop straight into the unsorted bin, giving us our libc leak.
+
+#### Setup
+
+We need three consecutive allocations. Chunk A is our target for the overlap, Chunk B will be the trigger, and the Guard chunk prevents our consolidated chunk from merging with the top chunk (which would destroy our pointers).
+
+```
+char *a = malloc(0x100);
+char *b = malloc(0x100);
+char *guard = malloc(0x10);
+```
+
+
+#### Forging
+
+We need a vulnerability—like an off-by-null or a standard heap overflow in chunk A that allows us to bleed into chunk B's header. We must clear the PREV_INUSE bit of chunk B and set its prev_size to the exact size of chunk A.
+
+```
+b[-16] = 0x110; 
+b[-8]  = 0x100;
+```
+
+When we call `free(b)` glibc will examine the metadata of chunk B and will consolidate chunk A with chunk B.
+
