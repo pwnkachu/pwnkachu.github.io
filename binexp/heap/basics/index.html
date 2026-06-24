@@ -1,0 +1,3457 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="This are my personal notes on how the heap work in various glibc implementations.">
+      
+      
+      
+        <link rel="canonical" href="https://pwnkachu.github.io/binexp/heap/basics/">
+      
+      
+        <link rel="prev" href="../../stack/race_conditions/">
+      
+      
+        <link rel="next" href="../protections/">
+      
+      
+        
+      
+      
+      <link rel="icon" href="../../../assets/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.6">
+    
+    
+      
+        <title>Heap Understanding - PwnKachu Notes</title>
+      
+    
+    
+      <link rel="stylesheet" href="../../../assets/stylesheets/main.484c7ddc.min.css">
+      
+        
+        <link rel="stylesheet" href="../../../assets/stylesheets/palette.ab4e12ef.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+    <script>__md_scope=new URL("../../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#overview" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+<header class="md-header" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href="../../.." title="PwnKachu Notes" class="md-header__button md-logo" aria-label="PwnKachu Notes" data-md-component="logo">
+      
+  <img src="../../../assets/logo.jpg" alt="logo">
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            PwnKachu Notes
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Heap Understanding
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: light)" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-label="Switch to dark mode"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="Switch to dark mode" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a4 4 0 0 0-4 4 4 4 0 0 0 4 4 4 4 0 0 0 4-4 4 4 0 0 0-4-4m0 10a6 6 0 0 1-6-6 6 6 0 0 1 6-6 6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: dark)" data-md-color-scheme="slate" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-label="Switch to light mode"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="Switch to light mode" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 18c-.89 0-1.74-.2-2.5-.55C11.56 16.5 13 14.42 13 12s-1.44-4.5-3.5-5.45C10.26 6.2 11.11 6 12 6a6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+        <div class="md-search__suggest" data-md-component="search-suggest"></div>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+            
+<nav class="md-tabs" aria-label="Tabs" data-md-component="tabs">
+  <div class="md-grid">
+    <ul class="md-tabs__list">
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../../.." class="md-tabs__link">
+        
+  
+  
+    
+  
+  Home
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+    
+  
+  
+    
+    
+      
+  
+  
+  
+    
+  
+  
+    
+    
+      <li class="md-tabs__item md-tabs__item--active">
+        <a href="../../intro/elf/" class="md-tabs__link">
+          
+  
+  
+    
+  
+  Binary Exploitation
+
+        </a>
+      </li>
+    
+  
+
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../../web/" class="md-tabs__link">
+          
+  
+  
+    
+  
+  Web Security
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../../crypto/" class="md-tabs__link">
+          
+  
+  
+    
+  
+  Crypto
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../../writeups/pwn/" class="md-tabs__link">
+          
+  
+  
+    
+  
+  CTF Writeups
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../../general/tamarin/" class="md-tabs__link">
+          
+  
+  
+    
+  
+  General
+
+        </a>
+      </li>
+    
+  
+
+    
+  
+
+      
+    </ul>
+  </div>
+</nav>
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+  
+
+
+<nav class="md-nav md-nav--primary md-nav--lifted" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="../../.." title="PwnKachu Notes" class="md-nav__button md-logo" aria-label="PwnKachu Notes" data-md-component="logo">
+      
+  <img src="../../../assets/logo.jpg" alt="logo">
+
+    </a>
+    PwnKachu Notes
+  </label>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../.." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Home
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+        
+        
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_2" id="__nav_2_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Binary Exploitation
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_2_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_2">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Binary Exploitation
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+        
+          
+          
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2_1" >
+        
+          
+          <label class="md-nav__link" for="__nav_2_1" id="__nav_2_1_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Introduction
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_2_1_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2_1">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Introduction
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../intro/elf/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    ELF Format
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../intro/assembly/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Assembly
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../intro/stack/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    The Stack
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../intro/got_plt/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    GOT and PLT
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../intro/commands/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Useful Commands
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../intro/general/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    General knowledge
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+        
+          
+          
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2_2" >
+        
+          
+          <label class="md-nav__link" for="__nav_2_2" id="__nav_2_2_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Stack Exploitation
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_2_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2_2">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Stack Exploitation
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../stack/buffer_overflow/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Buffer Overflow
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../stack/ret2libc/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    ret2libc
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../stack/rop/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    ROP (Return Oriented Programming)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../stack/srop/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    SROP (Sigreturn Oriented Programming)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../stack/stack_pivoting/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Pivot Stack
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../stack/format_string/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Format String Attacks
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../stack/integer_overflow/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Integer Overflow
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../stack/race_conditions/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Race Conditions
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+        
+          
+          
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2_3" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_2_3" id="__nav_2_3_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Heap Exploitation
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_2_3_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_2_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Heap Exploitation
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Heap Basics & Chunk Structure
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Heap Basics & Chunk Structure
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#overview" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Overview
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#chunks" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Chunks
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#top-chunk" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Top Chunk
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#metadata" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Metadata
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#bins" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Bins
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Bins">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#bins-definition" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Bins definition
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#smallbins" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        SmallBins
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#largebins" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        LargeBins
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#unsorted-bin" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Unsorted Bin
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#fastbins" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Fastbins
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#tcache-thread-local-cache" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Tcache (Thread Local Cache)
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Tcache (Thread Local Cache)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#bins-summary" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Bins Summary
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#glibc-heap-bins-summary" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Glibc Heap Bins Summary
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#consolidation" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Consolidation
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Consolidation">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#malloc_consolidate" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        malloc_consolidate
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#immediate-consolidation-_int_free" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Immediate consolidation (_int_free)
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#workflow" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        WorkFlow
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="WorkFlow">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#mallocsize" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        malloc(size)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#1-request-normalization" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1. Request Normalization
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#2-tcache-search" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2. Tcache Search
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#3-fastbins-search" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3. Fastbins Search
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#4-small-bins-search" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4. Small Bins Search
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#5-consolidation-size-1024" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5. Consolidation (size &gt;= 1024)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#6-unsorted-bin" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        6. Unsorted Bin
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#7-large-bins" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        7. Large Bins
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#8-extraction-from-top-chunk" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        8. Extraction from Top Chunk
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#9-os-request-sysmalloc" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        9. OS Request (sysmalloc)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#freeptr" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        free(ptr)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#1-validation-and-sanity-checks" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1. Validation and Sanity Checks
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#2-insertion-into-tcache" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2. Insertion into Tcache
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#3-insertion-into-fastbins" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3. Insertion into Fastbins
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#4-coalescence-in-the-unsorted-bin" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4. Coalescence in the Unsorted Bin
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#5-insertion-into-the-unsorted-bin" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5. Insertion into the Unsorted Bin
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#6-heap-trimming" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        6. Heap Trimming
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../protections/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Heap Protections
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../uaf/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    First-Fit & Use-After-Free (UAF)
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../double_free/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Double Free
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../fastbin_dup/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Fastbin Dup
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../tcache_poisoning/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Tcache Poisoning
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../unsorted_bin/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Unsorted Bin Attack
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../house_of_force/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    House of Force
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../house_of_lore/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    House of Lore
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../house_of_orange/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    House of Orange
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../house_of_einherjar/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    House of Einherjar
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../house_of_rust/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    House of Rust
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../safe_linking/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Safe Linking Bypass
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" >
+        
+          
+          <div class="md-nav__link md-nav__container">
+            <a href="../../../web/" class="md-nav__link ">
+              
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Web Security
+  
+
+    
+  </span>
+  
+  
+
+            </a>
+            
+          </div>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Web Security
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4" >
+        
+          
+          <div class="md-nav__link md-nav__container">
+            <a href="../../../crypto/" class="md-nav__link ">
+              
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Crypto
+  
+
+    
+  </span>
+  
+  
+
+            </a>
+            
+          </div>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_4">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Crypto
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5" >
+        
+          
+          <label class="md-nav__link" for="__nav_5" id="__nav_5_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    CTF Writeups
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_5_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_5">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    CTF Writeups
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../writeups/pwn/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Pwn
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../writeups/rev/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Reverse Engineering
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../writeups/web/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Web
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../writeups/crypto/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Crypto
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../writeups/forensics/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Forensics
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../writeups/misc/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Misc
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+      
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_6" >
+        
+          
+          <label class="md-nav__link" for="__nav_6" id="__nav_6_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    General
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_6_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_6">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    General
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_6_1" >
+        
+          
+          <label class="md-nav__link" for="__nav_6_1" id="__nav_6_1_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Tamarin
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_6_1_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_6_1">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Tamarin
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../general/tamarin/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Tamarin Overview
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../general/tamarin_protocol_example/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Protocol Example
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../general/tamarin_modeling/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Protocol Modeling
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../general/MultiSetRewrite_advanced/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Advanced MRR
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../general/process_calculus/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Process Calculus
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#overview" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Overview
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#chunks" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Chunks
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#top-chunk" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Top Chunk
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#metadata" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Metadata
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#bins" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Bins
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Bins">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#bins-definition" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Bins definition
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#smallbins" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        SmallBins
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#largebins" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        LargeBins
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#unsorted-bin" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Unsorted Bin
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#fastbins" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Fastbins
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#tcache-thread-local-cache" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Tcache (Thread Local Cache)
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Tcache (Thread Local Cache)">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#bins-summary" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Bins Summary
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#glibc-heap-bins-summary" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Glibc Heap Bins Summary
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#consolidation" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Consolidation
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Consolidation">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#malloc_consolidate" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        malloc_consolidate
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#immediate-consolidation-_int_free" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Immediate consolidation (_int_free)
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#workflow" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        WorkFlow
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="WorkFlow">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#mallocsize" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        malloc(size)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#1-request-normalization" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1. Request Normalization
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#2-tcache-search" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2. Tcache Search
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#3-fastbins-search" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3. Fastbins Search
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#4-small-bins-search" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4. Small Bins Search
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#5-consolidation-size-1024" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5. Consolidation (size &gt;= 1024)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#6-unsorted-bin" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        6. Unsorted Bin
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#7-large-bins" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        7. Large Bins
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#8-extraction-from-top-chunk" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        8. Extraction from Top Chunk
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#9-os-request-sysmalloc" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        9. OS Request (sysmalloc)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#freeptr" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        free(ptr)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#1-validation-and-sanity-checks" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1. Validation and Sanity Checks
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#2-insertion-into-tcache" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2. Insertion into Tcache
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#3-insertion-into-fastbins" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3. Insertion into Fastbins
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#4-coalescence-in-the-unsorted-bin" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4. Coalescence in the Unsorted Bin
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#5-insertion-into-the-unsorted-bin" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5. Insertion into the Unsorted Bin
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#6-heap-trimming" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        6. Heap Trimming
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+
+<h2 id="overview">Overview</h2>
+<p>The heap is composed of chunks, structures that contains a fixed amount of metadata and a variable (depends on the chunk lenght that is requested as an input to <code>malloc()</code> or <code>calloc()</code>) amount of user Data. I'll try to explain how the heap works by break down it's mechanism and components into multiple subchapters. One fundamental component of the heap is the <em>Allocator</em></p>
+<div class="admonition allocator">
+<p class="admonition-title">Allocator</p>
+<p>A heap allocator is a system component that manages a program's dynamic memory by reserving chunks of memory (such as malloc in C or Box/Vec in Rust) and reclaiming them later. It functions as a bookkeeper, tracking free space to minimize fragmentation and prevent memory leaks.</p>
+</div>
+<h1 id="chunks">Chunks</h1>
+<p>A chunk is a portion of memory on the heap, and an user usually interact with it through a pointer that has been returned by malloc. Every chunk must be freed when it's not longer used and the pointer that referred to the previous allocated chunk should be set to null in order to avoid a UAF (Use After Free).</p>
+<p>At level code a chunk is always declared as a <code>malloc_chunk</code> and it's field are always the same, but their usage depends on the state of the chunk.</p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>struct malloc_chunk {
+</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>  INTERNAL_SIZE_T      mchunk_prev_size;  // Size of prev chunk if free
+</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>  INTERNAL_SIZE_T      mchunk_size;       // Size in bytes + flags
+</span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>  struct malloc_chunk* fd;                // Forward pointer
+</span><span id="__span-0-5"><a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a>  struct malloc_chunk* bk;                // Backward pointer
+</span><span id="__span-0-6"><a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a>  struct malloc_chunk* fd_nextsize;       // Forward pointer for large bins
+</span><span id="__span-0-7"><a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a>  struct malloc_chunk* bk_nextsize;       // Backward pointer for large bins
+</span><span id="__span-0-8"><a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a>};
+</span></code></pre></div>
+<h1 id="top-chunk">Top Chunk</h1>
+<p>The top chunk is the chunk that is located at the end of the heap. The top chunk is where the memory for <code>malloc()</code> is allocated from if there are no bins of the correct size with at least one freed chunk.
+The portion of memory that is still present as freed after a malloc() that took the top chunk memory is called the <em>remainder chunk</em>, which is the new top chunk. The top chunk resides at the highest address of the memory (toward the stack).
+<img alt="Top Chunk" src="../images/TopChunk.png" /></p>
+<h1 id="metadata">Metadata</h1>
+<ul>
+<li>
+<p><strong>Prev. Size</strong>: Is valid only if the previous chunk has been freed. Otherwise this 8  byte space (on 64 bit systems) is taken by the previous chunk to write part of it's user data. This is useful for various purposes. In the first case, the previous chunk has been freed, so the allocator (which manages the chunks) can use this field to perform memory coalescing (merging adjacent free chunks into a larger block) much more quickly.</p>
+</li>
+<li>
+<p><strong>Size</strong>: This is the overall (data + metadata) size of the chunk. It must be a multiple of 8 meaning that the last 3 bits of the size are 0. This allows to save spaces by putting 3 flags into this field (last three bits):</p>
+<ul>
+<li>
+<p><strong>A</strong> is the NON_MAIN_ARENA flag that is set to 1 if the current chunk is not located into the main arena. I will dig into arenas later.</p>
+</li>
+<li>
+<p><strong>M</strong> is the IS_MMAPED flag and is set to 1 if the chunk is allocated via mmap() rather than malloc(). This means that the chunk was directly created by the OS rather than being taken by the heap. When freed this chunk will be not placed into <em>bins</em>, instead a munmap() wil be performed to give the memory back to the OS. Those chunks do not have adjacent chunks, therefore they will ignore A,P flags.</p>
+</li>
+<li>
+<p><strong>P</strong> is the PREV_INUSE flag which is set when the previous adjacent chunk is in use. The very first chunk allocated has always this bit set to 1 to prevent access to non owned memory. If it's set to 1 it's impossible to retrieve the previous chunk size.</p>
+</li>
+</ul>
+</li>
+</ul>
+<p>We must distinguish from freed chunks and allocated chunks:</p>
+<ul>
+<li>
+<p><em>An allocated chunk looks like this:</em>
+    <div class="language-text highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>    chunk-&gt; +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+</span><span id="__span-1-2"><a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>        |             Size of previous chunk, if unallocated (P clear)  |
+</span><span id="__span-1-3"><a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a>        +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+</span><span id="__span-1-4"><a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a>        |             Size of chunk, in bytes                     |A|M|P|
+</span><span id="__span-1-5"><a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a>    mem-&gt; +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+</span><span id="__span-1-6"><a id="__codelineno-1-6" name="__codelineno-1-6" href="#__codelineno-1-6"></a>        |             User data starts here...                          .
+</span><span id="__span-1-7"><a id="__codelineno-1-7" name="__codelineno-1-7" href="#__codelineno-1-7"></a>        .                                                               .
+</span><span id="__span-1-8"><a id="__codelineno-1-8" name="__codelineno-1-8" href="#__codelineno-1-8"></a>        .             (malloc_usable_size() bytes)                      .
+</span><span id="__span-1-9"><a id="__codelineno-1-9" name="__codelineno-1-9" href="#__codelineno-1-9"></a>        .                                                               |
+</span><span id="__span-1-10"><a id="__codelineno-1-10" name="__codelineno-1-10" href="#__codelineno-1-10"></a>nextchunk-&gt; +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+</span><span id="__span-1-11"><a id="__codelineno-1-11" name="__codelineno-1-11" href="#__codelineno-1-11"></a>        |             (size of chunk, but used for application data)    |
+</span><span id="__span-1-12"><a id="__codelineno-1-12" name="__codelineno-1-12" href="#__codelineno-1-12"></a>        +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+</span><span id="__span-1-13"><a id="__codelineno-1-13" name="__codelineno-1-13" href="#__codelineno-1-13"></a>        |             Size of next chunk, in bytes                |A|0|1|
+</span><span id="__span-1-14"><a id="__codelineno-1-14" name="__codelineno-1-14" href="#__codelineno-1-14"></a>        +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+</span></code></pre></div></p>
+</li>
+<li>
+<p><em>Free chunks are stored in circular doubly-linked lists, and look like this</em>:
+    <div class="language-text highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>    chunk-&gt; +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+</span><span id="__span-2-2"><a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>        |             Size of previous chunk, if unallocated (P clear)  |
+</span><span id="__span-2-3"><a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a>        +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+</span><span id="__span-2-4"><a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a>    `head:&#39; |             Size of chunk, in bytes                     |A|0|P|
+</span><span id="__span-2-5"><a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a>    mem-&gt; +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+</span><span id="__span-2-6"><a id="__codelineno-2-6" name="__codelineno-2-6" href="#__codelineno-2-6"></a>        |             Forward pointer to next chunk in list             |
+</span><span id="__span-2-7"><a id="__codelineno-2-7" name="__codelineno-2-7" href="#__codelineno-2-7"></a>        +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+</span><span id="__span-2-8"><a id="__codelineno-2-8" name="__codelineno-2-8" href="#__codelineno-2-8"></a>        |             Back pointer to previous chunk in list            |
+</span><span id="__span-2-9"><a id="__codelineno-2-9" name="__codelineno-2-9" href="#__codelineno-2-9"></a>        +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+</span><span id="__span-2-10"><a id="__codelineno-2-10" name="__codelineno-2-10" href="#__codelineno-2-10"></a>        |             Unused space (may be 0 bytes long)                .
+</span><span id="__span-2-11"><a id="__codelineno-2-11" name="__codelineno-2-11" href="#__codelineno-2-11"></a>        .                                                               .
+</span><span id="__span-2-12"><a id="__codelineno-2-12" name="__codelineno-2-12" href="#__codelineno-2-12"></a>        .                                                               |
+</span><span id="__span-2-13"><a id="__codelineno-2-13" name="__codelineno-2-13" href="#__codelineno-2-13"></a>nextchunk-&gt; +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+</span><span id="__span-2-14"><a id="__codelineno-2-14" name="__codelineno-2-14" href="#__codelineno-2-14"></a>    `foot:&#39; |             Size of chunk, in bytes                           |
+</span><span id="__span-2-15"><a id="__codelineno-2-15" name="__codelineno-2-15" href="#__codelineno-2-15"></a>        +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+</span><span id="__span-2-16"><a id="__codelineno-2-16" name="__codelineno-2-16" href="#__codelineno-2-16"></a>        |             Size of next chunk, in bytes                |A|0|0|
+</span><span id="__span-2-17"><a id="__codelineno-2-17" name="__codelineno-2-17" href="#__codelineno-2-17"></a>        +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+</span></code></pre></div></p>
+</li>
+</ul>
+<p>In order to explain the Fd and Bk pointers we must give an overview of the <em>bins</em>.</p>
+<h1 id="bins">Bins</h1>
+<p>To improve the efficiency of heap memory allocation and release, glibc malloc uses explicit lists to manage freed chunks. An explicit list is a linked list that connects nodes with the same attribute in series to facilitate management. In glibc malloc, these linked lists are called bins. The nodes on the linked lists are freed chunks. We can differentiate bins in how they are used and the min/max size of the chunks that they store. </p>
+<p>It is important to note that the original bins were the small bin, large bin and unsorted bin. Tcache and fastbins were implemented as an optimization above those original bins. So during the analysis of the glibc source code one must differentiate the code from the original bins and those that were added later.</p>
+<p>For example this comment from the glibc <a href="https://codebrowser.dev/glibc/glibc/malloc/malloc.c.html#1734">malloc source code</a> is not true:
+<code>Each bin is doubly linked.</code></p>
+<h4 id="bins-definition">Bins definition</h4>
+<p>Smallbins, unsorted bin e largebins are loaded inside a struct called main arena:
+<div class="language-text highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>struct malloc_state {
+</span><span id="__span-3-2"><a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>  /* ... */
+</span><span id="__span-3-3"><a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a>  mchunkptr bins[NBINS * 2 - 2];
+</span><span id="__span-3-4"><a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a>  /* ... */
+</span><span id="__span-3-5"><a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a>};
+</span></code></pre></div></p>
+<p>This is the struct of the main arena that is statically defined in the data segment (initialized global and local static variables) of libc.so, it is loaded into memory during startup inside <code>ptmalloc_init()</code> <a href="https://elixir.bootlin.com/glibc/glibc-2.43.9000/source/malloc/arena.c">Arena source code</a>.</p>
+<div class="admonition info">
+<p class="admonition-title">Copy On Write</p>
+<p>The .text of libc.so is loaded one single time in memory and is shared by all the process in a system, but the .data segment is copied for each process so that every process has it's own main_arena. As soon a process modifies it's arena this technique is applied.</p>
+</div>
+<p><code>NBINS</code> is defined as 128. Bin 0 does not exist, bin 1 is the unsorted bin, bins 2-64 are small bins and bins 65-127 are large bins.</p>
+<p>The index of a bin based upon the size is found by: 
+<div class="language-text highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a>#define bin_index(sz) \
+</span><span id="__span-4-2"><a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a>  ((in_smallbin_range (sz)) ? smallbin_index (sz) : largebin_index (sz))
+</span></code></pre></div></p>
+<p>A closer look will reveal that the <code>bins</code> variable does not load <code>malloc_chunk</code> data, but rather <code>mchunkptr</code>; this type is defined as a pointer to the base of a <code>malloc_chunk</code>.</p>
+<p><code>typedef struct malloc_chunk* mchunkptr;</code></p>
+<p>This is because loading a <code>malloc_chunk</code> into memory would be too resource-intensive, and the workarounds that have been developed can be found in the glibc comments. </p>
+<p>Without going into details, doubly linked list commonly use a fake node as the first node of the list, this permits to avoid the empty list check. In order to use the same code for all the nodes, the fake node must be a <code>malloc_chunk</code>.</p>
+<p>The bins will store the first node by masking it as a malloc_chunk node, doing so the first index <code>bins[0]</code> is the fd pointer of the unsorted bin and <code>bins[1]</code> is the bk pointer of the first fake node of the unsorted bin.</p>
+<h3 id="smallbins">SmallBins</h3>
+<p>There are 62 small bins that are structured as a circular doubly linked list (fd and bk are used). The access pattern is FIFO and those bins are consolidated when there is a free().</p>
+<p>On 64 bit systems small bins will manage chunks that are less than 1.024 bytes (from that size on chunks are considered large) and the minimum size is 32 to 47 bytes and the chunk size in each subsequent small bin is increased by 16 bytes, that is, the minimum chunk value of the last small bin is 32 + 62 x 16 = 1008 bytes. In 32 bit systems the maximum size of a small bin is 512 bytes.</p>
+<p>Each small bin store only one size of a chunk, so they are automatically ordered.</p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a> #define in_smallbin_range(sz)  \
+</span><span id="__span-5-2"><a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a>  ((unsigned long) (sz) &lt; (unsigned long) MIN_LARGE_SIZE)
+</span></code></pre></div>
+<h3 id="largebins">LargeBins</h3>
+<p>Used to manage chunks that are larger than 1024 bytes (on 64 bit systems). There are 63 large bins and they store a <em>range</em> of sizes (not a fixed one as in small bins). Those sizes are designed to do not overlap between each others. The largest amount of memory of a large bin covers is above 1 MB. </p>
+<p>Due to their nature, large bins needs ordering.</p>
+<h3 id="unsorted-bin">Unsorted Bin</h3>
+<p>All remainders from chunk splits, as well as all returned chunks,
+are first placed here. They are then placed in regular bins after malloc gives them ONE chance to be used before binning. </p>
+<p>Basically, the unsorted chunks acts as a queue, with chunks being placed on it in free (and malloc_consolidate), and taken off (to be either used or placed in bins) in malloc (either used as the malloc response or if not placed into the associated bin).</p>
+<h3 id="fastbins">Fastbins</h3>
+<p>Fast bins are used to improve the allocation efficiency of small memory. Before thread local caches (tcache) were introduced (later in the note), fast bins were the first structure to be accessed during memory application and release. </p>
+<p>Chunks that are placed into the fastbins will not modify the prev_inuse flag of the adjacent chunk, so from the allocator points those chunk are already in use and cannot be merged.</p>
+<p>On a 64-bit system, a fast bin consists of 10 linked lists (10 fastbins), and the maximum chunk size is 160 bytes. </p>
+<p>However, glibc limits the maximum chunk size to 128 bytes by using the global variable <code>global_max_fast</code> by default. Therefore, a chunk whose size is <em>16 to 128</em> bytes and is a multiple of 16 is classified as a fast chunk by default (Fastbins size goes from 16 bytes to 128 bytes).</p>
+<p>The max size is given by: 
+<code>#define MAX_FAST_SIZE  (80 * SIZE_SZ / 4)</code> where <code>SIZE_SZ</code> is defined as <code>(sizeof(INTERNAL_SIZE_T))</code> </p>
+<p>Each fast bin maintains a singly linked list as a LIFO structure. To implement the LIFO algorithm, each fast bin element in the fastbins array points to the tail node of the linked list, and the tail node points to the previous node by using its fd pointer.</p>
+<p><em>Fast bins do not merge free chunks (Not directly)</em> and <em>there isn't a fixed max amount of chunks</em> that a fastbin can take.</p>
+<p><img alt="LIFO" src="../images/LIFO.png" /></p>
+<p>We can see the comment on documentation for a better understanding: 
+   <div class="language-text highlight"><pre><span></span><code><span id="__span-6-1"><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a>/*
+</span><span id="__span-6-2"><a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a> An array of lists holding recently freed small chunks.  Fastbins
+</span><span id="__span-6-3"><a id="__codelineno-6-3" name="__codelineno-6-3" href="#__codelineno-6-3"></a> are not doubly linked.  It is faster to single-link them, and
+</span><span id="__span-6-4"><a id="__codelineno-6-4" name="__codelineno-6-4" href="#__codelineno-6-4"></a> since chunks are never removed from the middles of these lists,
+</span><span id="__span-6-5"><a id="__codelineno-6-5" name="__codelineno-6-5" href="#__codelineno-6-5"></a> double linking is not necessary. Also, unlike regular bins, they
+</span><span id="__span-6-6"><a id="__codelineno-6-6" name="__codelineno-6-6" href="#__codelineno-6-6"></a> are not even processed in FIFO order (they use faster LIFO) since
+</span><span id="__span-6-7"><a id="__codelineno-6-7" name="__codelineno-6-7" href="#__codelineno-6-7"></a> ordering doesn&#39;t much matter in the transient contexts in which
+</span><span id="__span-6-8"><a id="__codelineno-6-8" name="__codelineno-6-8" href="#__codelineno-6-8"></a> fastbins are normally used.
+</span><span id="__span-6-9"><a id="__codelineno-6-9" name="__codelineno-6-9" href="#__codelineno-6-9"></a> Chunks in fastbins keep their inuse bit set, so they cannot
+</span><span id="__span-6-10"><a id="__codelineno-6-10" name="__codelineno-6-10" href="#__codelineno-6-10"></a> be consolidated with other free chunks. malloc_consolidate
+</span><span id="__span-6-11"><a id="__codelineno-6-11" name="__codelineno-6-11" href="#__codelineno-6-11"></a> releases all chunks in fastbins and consolidates them with
+</span><span id="__span-6-12"><a id="__codelineno-6-12" name="__codelineno-6-12" href="#__codelineno-6-12"></a> other free chunks.*/
+</span></code></pre></div></p>
+<p>Fastbins are placed in the same struct as other bins but in a different field:
+<div class="language-text highlight"><pre><span></span><code><span id="__span-7-1"><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a>struct malloc_state {
+</span><span id="__span-7-2"><a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a>  /* ... */
+</span><span id="__span-7-3"><a id="__codelineno-7-3" name="__codelineno-7-3" href="#__codelineno-7-3"></a>
+</span><span id="__span-7-4"><a id="__codelineno-7-4" name="__codelineno-7-4" href="#__codelineno-7-4"></a>  /* Array of fastbins */
+</span><span id="__span-7-5"><a id="__codelineno-7-5" name="__codelineno-7-5" href="#__codelineno-7-5"></a>  mfastbinptr fastbinsY[NFASTBINS];
+</span><span id="__span-7-6"><a id="__codelineno-7-6" name="__codelineno-7-6" href="#__codelineno-7-6"></a>
+</span><span id="__span-7-7"><a id="__codelineno-7-7" name="__codelineno-7-7" href="#__codelineno-7-7"></a>  /* Base of the topmost chunk */
+</span><span id="__span-7-8"><a id="__codelineno-7-8" name="__codelineno-7-8" href="#__codelineno-7-8"></a>  mchunkptr top;
+</span><span id="__span-7-9"><a id="__codelineno-7-9" name="__codelineno-7-9" href="#__codelineno-7-9"></a>
+</span><span id="__span-7-10"><a id="__codelineno-7-10" name="__codelineno-7-10" href="#__codelineno-7-10"></a>  /* Normal bins: unsorted, small, large */
+</span><span id="__span-7-11"><a id="__codelineno-7-11" name="__codelineno-7-11" href="#__codelineno-7-11"></a>  mchunkptr bins[NBINS * 2 - 2];
+</span><span id="__span-7-12"><a id="__codelineno-7-12" name="__codelineno-7-12" href="#__codelineno-7-12"></a>
+</span><span id="__span-7-13"><a id="__codelineno-7-13" name="__codelineno-7-13" href="#__codelineno-7-13"></a>  /* ... */
+</span><span id="__span-7-14"><a id="__codelineno-7-14" name="__codelineno-7-14" href="#__codelineno-7-14"></a>};
+</span></code></pre></div></p>
+<h3 id="tcache-thread-local-cache">Tcache (Thread Local Cache)</h3>
+<p>Introduced in glibc 2.26 as an efficiency improvement for the allocation into multithreading programs. They avoid the necessity of gaining the global lock to the main aren for operation on small block. It basically acts as a Fast bins for each thread, in order to save time avoiding to wait for the lock to the main arena. </p>
+<p>The tcache is a LIFO data structure that points only to the head of the list (<em>only fd is used</em>)</p>
+<div class="admonition main arena lock">
+<p class="admonition-title">Main</p>
+<p>The main arena is the primary contiguos memory region created by the glibc memory allocator to manage a process's heap. A lock is present as a mutex to prevent race condition and memory collision in multithread applications.</p>
+</div>
+<p>There are 64 bins that goes from 24 byte to 1032 bytes, with a distance of 16 bytes between each bin. Every tcache bin has a max amount of 7 chunks that it can store.
+If the tcache of a specific dimension is full, the associated fastbin is used (requires lock).</p>
+<p>Due to the fact that the tcache needs to be unique to each thread, it is a different struct from malloc_state:</p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-8-1"><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a>/* Single entry in the tcache list */
+</span><span id="__span-8-2"><a id="__codelineno-8-2" name="__codelineno-8-2" href="#__codelineno-8-2"></a>typedef struct tcache_entry {
+</span><span id="__span-8-3"><a id="__codelineno-8-3" name="__codelineno-8-3" href="#__codelineno-8-3"></a>  struct tcache_entry *next;
+</span><span id="__span-8-4"><a id="__codelineno-8-4" name="__codelineno-8-4" href="#__codelineno-8-4"></a>  struct tcache_perthread_struct *key;
+</span><span id="__span-8-5"><a id="__codelineno-8-5" name="__codelineno-8-5" href="#__codelineno-8-5"></a>} tcache_entry;
+</span><span id="__span-8-6"><a id="__codelineno-8-6" name="__codelineno-8-6" href="#__codelineno-8-6"></a>
+</span><span id="__span-8-7"><a id="__codelineno-8-7" name="__codelineno-8-7" href="#__codelineno-8-7"></a>/* Main tcache structure per thread */
+</span><span id="__span-8-8"><a id="__codelineno-8-8" name="__codelineno-8-8" href="#__codelineno-8-8"></a>typedef struct tcache_perthread_struct {
+</span><span id="__span-8-9"><a id="__codelineno-8-9" name="__codelineno-8-9" href="#__codelineno-8-9"></a>  uint16_t counts[TCACHE_MAX_BINS];
+</span><span id="__span-8-10"><a id="__codelineno-8-10" name="__codelineno-8-10" href="#__codelineno-8-10"></a>  tcache_entry *entries[TCACHE_MAX_BINS];
+</span><span id="__span-8-11"><a id="__codelineno-8-11" name="__codelineno-8-11" href="#__codelineno-8-11"></a>} tcache_perthread_struct;
+</span><span id="__span-8-12"><a id="__codelineno-8-12" name="__codelineno-8-12" href="#__codelineno-8-12"></a>
+</span><span id="__span-8-13"><a id="__codelineno-8-13" name="__codelineno-8-13" href="#__codelineno-8-13"></a>/* Thread-local pointer initialized per thread */
+</span><span id="__span-8-14"><a id="__codelineno-8-14" name="__codelineno-8-14" href="#__codelineno-8-14"></a>static __thread tcache_perthread_struct *tcache = NULL;
+</span></code></pre></div>
+<h4 id="bins-summary">Bins Summary</h4>
+<h3 id="glibc-heap-bins-summary">Glibc Heap Bins Summary</h3>
+<table>
+<thead>
+<tr>
+<th style="text-align: left;">Bin Type</th>
+<th style="text-align: left;">Data Structure</th>
+<th style="text-align: left;">Allocation Policy</th>
+<th style="text-align: left;">Min Chunk Size</th>
+<th style="text-align: left;">Max Chunk Size</th>
+<th style="text-align: left;">Total Bins</th>
+<th style="text-align: left;">Max Elements per Bin</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: left;"><strong>Tcache</strong></td>
+<td style="text-align: left;">Singly Linked List</td>
+<td style="text-align: left;">LIFO</td>
+<td style="text-align: left;">32 bytes</td>
+<td style="text-align: left;">1032 bytes (0x408)</td>
+<td style="text-align: left;">64</td>
+<td style="text-align: left;">7 (default limit)</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>Fastbins</strong></td>
+<td style="text-align: left;">Singly Linked List</td>
+<td style="text-align: left;">LIFO</td>
+<td style="text-align: left;">32 bytes</td>
+<td style="text-align: left;">128 bytes (0x80)</td>
+<td style="text-align: left;">10</td>
+<td style="text-align: left;">Uncapped</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>Unsorted Bin</strong></td>
+<td style="text-align: left;">Doubly Linked List</td>
+<td style="text-align: left;">FIFO / Cache</td>
+<td style="text-align: left;">32 bytes</td>
+<td style="text-align: left;">System limits</td>
+<td style="text-align: left;">1</td>
+<td style="text-align: left;">Uncapped</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>Small Bins</strong></td>
+<td style="text-align: left;">Doubly Linked List</td>
+<td style="text-align: left;">FIFO</td>
+<td style="text-align: left;">32 bytes</td>
+<td style="text-align: left;">1008 bytes (0x3F0)</td>
+<td style="text-align: left;">62</td>
+<td style="text-align: left;">Uncapped</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>Large Bins</strong></td>
+<td style="text-align: left;">Doubly Linked List</td>
+<td style="text-align: left;">Best-Fit / FIFO</td>
+<td style="text-align: left;">1024 bytes (0x400)</td>
+<td style="text-align: left;">Below <code>mmap</code> threshold</td>
+<td style="text-align: left;">63</td>
+<td style="text-align: left;">Uncapped</td>
+</tr>
+</tbody>
+</table>
+<h1 id="consolidation">Consolidation</h1>
+<h2 id="malloc_consolidate">malloc_consolidate</h2>
+<p>Fragmentation is a major problem from the heap perspective. The function that merges heap chunks is <code>malloc_consolidate()</code> and we can see it as the garbage collector of the heap. It operates exclusively on fastbins and hen called it perform the following operations:</p>
+<ul>
+<li>
+<p>*<em>For every fastbins chunk</em> it checks if the chunks adjacent (at lower address) is not in use (so it will check the current chunk prev inuse bit), in that case it merges it.</p>
+</li>
+<li>
+<p>It will also check the upper adjacent chunk and, if it's not in use and it's not the top chunk, it will also merge it into a final chunk.</p>
+</li>
+<li>
+<p>Those marged block will be placed inside the unsorted bin.</p>
+</li>
+<li>
+<p>If the next chunk was the top chunk, the current chunk is driectly merged with it.</p>
+</li>
+</ul>
+<p>I don't want to go in depth for the prev_inuse management, but you can imagine that, based upon the chunks that are merged at the end of this operations, the appropriate prev_inuse flags will be correctly set.</p>
+<h2 id="immediate-consolidation-_int_free">Immediate consolidation (_int_free)</h2>
+<p>This consolidation is performed from <code>free()</code> every time that a chunk that will not go into tcache or fastbin is freed. It perform the following actions:</p>
+<ul>
+<li>
+<p><em>Backward consolidation</em>: The <code>prev_inuse</code> flag of the chunk that is being freed will be checked. If the adjacent chunk is free a merge is performed.</p>
+</li>
+<li>
+<p><em>Forward consolidation</em>: It perform the same operation but with the other adjacent chunk and merge it if it's free.</p>
+</li>
+<li>
+<p>The final chunk is going to be placed inside the unsorted bin.</p>
+</li>
+<li>
+<p>If the adjacent chunk is the top chunk, the chunk is merged to it.</p>
+</li>
+</ul>
+<h1 id="workflow">WorkFlow</h1>
+<h3 id="mallocsize"><code>malloc(size)</code></h3>
+<p>When an application calls <code>malloc(size)</code>, the allocator executes a strict sequence of steps. The search stops as soon as a suitable chunk is found.</p>
+<h3 id="1-request-normalization">1. Request Normalization</h3>
+<p>The allocator never looks for the exact size requested by the user. It adds the necessary space for metadata (minimum 8 or 16 bytes) and rounds the result up to respect CPU alignment (multiples of 16 bytes on 64-bit systems). If a user asks for 12 bytes, <code>malloc</code> will look for a 32-byte chunk.</p>
+<blockquote>
+<p><em>If the request is abnormally large (e.g., hundreds of Kilobytes), <code>malloc</code> bypasses all bins and directly uses <code>mmap()</code> to request memory from the kernel.</em></p>
+</blockquote>
+<h3 id="2-tcache-search">2. Tcache Search</h3>
+<p><code>malloc</code> calculates the Tcache index corresponding to the requested size. If the Tcache bin has at least one chunk available, it removes it from the head of the list (LIFO), updates the pointers, and returns it to the user. <em>No arena lock is acquired.</em></p>
+<h3 id="3-fastbins-search">3. Fastbins Search</h3>
+<p>If the Tcache is empty but the size falls within the Fastbins range (default &lt; 128 bytes), <code>malloc</code> checks the corresponding Fastbin. If it finds available chunks, it takes one. Furthermore, to optimize future allocations, <strong>it empties the rest of that Fastbin and moves the remaining chunks into the thread's Tcache</strong>, then returns the requested chunk to the user. The displacement is performed from the head of the fastbin and it's stopped if the tcache becomes full: <code>tcache-&gt;counts[tc_idx] &lt; mp_.tcache_count</code></p>
+<h3 id="4-small-bins-search">4. Small Bins Search</h3>
+<p>If the size falls into the Small category (and fast paths failed), the allocator checks the exact associated Small Bin. If it contains a chunk, it is unlinked from the doubly linked list (FIFO) and returned. As in Fastbins Search, the allocator will <strong>empty the rest of that Small Bin and moves the remaining chunks into the thread's Tcache</strong>. </p>
+<h3 id="5-consolidation-size-1024">5. Consolidation (size &gt;= 1024)</h3>
+<p>If the request is for a <em>Large</em> size (&gt;= 1024 bytes), <code>malloc</code> knows it will have to perform a complex search. Before doing so, it invokes <code>malloc_consolidate()</code> to empty all Fastbins, merge adjacent fragments into the unsorted bin, and place them in the Unsorted Bin, hoping to create a block large enough.</p>
+<h3 id="6-unsorted-bin">6. Unsorted Bin</h3>
+<p>If the previous steps fail, <code>malloc</code> starts scanning the Unsorted Bin from start to finish (FIFO):</p>
+<ul>
+<li><strong>Exact match:</strong> If it finds a chunk of the perfect size, it returns it immediately.</li>
+<li><strong>Partial match (Splitting):</strong> If it finds a chunk <em>larger</em> than needed, it splits it. It returns the requested portion to the user and turns the remainder into a new free chunk, which is put back into the Unsorted Bin.</li>
+<li><strong>Sorting:</strong> If an inspected chunk does not fit, <strong>it is not left in the Unsorted Bin</strong>. <code>malloc</code> unlinks it and inserts it into the appropriate Small Bin or Large Bin. <em>This is the only time Small and Large Bins are populated.</em> If the request was inside the tcache size, the sorting also stashes the chunk into the tcache.</li>
+</ul>
+<h3 id="7-large-bins">7. Large Bins</h3>
+<p>If the request was Large, after sorting the Unsorted Bin, <code>malloc</code> searches the corresponding Large Bin. Using the <code>fd_nextsize</code> and <code>bk_nextsize</code> pointers, it skips through the blocks to find the <em>best fit</em> (the smallest block that is still large enough). Again, if the found block is too large, it is split, and the remainder goes into the Unsorted Bin.</p>
+<h3 id="8-extraction-from-top-chunk">8. Extraction from Top Chunk</h3>
+<p>If all bins fail, the allocator turns to the Top Chunk (the large block of memory at the top of the heap bordering unmapped space). If the Top Chunk is large enough, it slices a piece off and returns it.</p>
+<h3 id="9-os-request-sysmalloc">9. OS Request (<code>sysmalloc</code>)</h3>
+<p>If even the Top Chunk is exhausted or too small, <code>malloc</code> is forced to ask the kernel for new memory. It makes a <em>syscall</em> (<code>sbrk</code> to expand the Top Chunk, or <code>mmap</code> to allocate a completely new area) and finally serves the request.</p>
+<p><img alt="Malloc Overview" src="../images/Malloc_Overview.png" /></p>
+<hr />
+<h3 id="freeptr"><code>free(ptr)</code></h3>
+<p>When the application calls <code>free(ptr)</code>, the goal of <code>glibc</code> is to reclaim the block as quickly as possible, merging it with other blocks only if strictly necessary to combat fragmentation.</p>
+<h3 id="1-validation-and-sanity-checks">1. Validation and Sanity Checks</h3>
+<p><code>free</code> does not trust the passed pointer blindly. It checks that:
+* The pointer is correctly aligned in memory.
+* The chunk does not exceed the physical limits of the arena.
+* The chunk is not the same one returned by an immediately preceding <code>free</code> call (basic <em>Double Free</em> check).
+* If the chunk has the <code>IS_MMAPPED</code> (M) bit set to 1, <code>free</code> ignores the heap and directly calls the <code>munmap()</code> syscall to return the memory pages to the kernel.</p>
+<h3 id="2-insertion-into-tcache">2. Insertion into Tcache</h3>
+<p>If the chunk size is compatible with the Tcache and the corresponding bin is not full (&lt; 7 elements):
+* <strong>Security:</strong> A check is performed on the chunk's <code>key</code> to detect complex <em>Double Free</em> attempts within the same bin.
+* The <code>fd</code> pointer is written into the data space to point to the current head of the list.
+* The chunk becomes the new head of the Tcache (LIFO). <em>The process ends here.</em></p>
+<h3 id="3-insertion-into-fastbins">3. Insertion into Fastbins</h3>
+<p>If the Tcache is full or disabled, but the chunk falls within the fastbin threshold (e.g., &lt; 128 bytes):
+* <strong>Security:</strong> It checks that the chunk at the top of the list is not the same one being freed (Partial Double Free protection).
+* The block is inserted at the head of the Fastbin (LIFO).
+* The <code>PREV_INUSE</code> bit of the physically next block in memory is <em>not</em> altered. To the memory, this chunk still appears allocated, preventing any coalescence. <em>The process ends here.</em></p>
+<h3 id="4-coalescence-in-the-unsorted-bin">4. Coalescence in the Unsorted Bin</h3>
+<p>If the block is larger than the fastbins, it must be placed into the Unsorted Bin. Before doing so, <code>free</code> tries to merge it with its physical neighbors to create a larger block:</p>
+<ul>
+<li>
+<p><strong>Backward Coalesce:</strong> It checks its own <code>PREV_INUSE</code> flag. If it is <code>0</code>, it means the physically previous block is free. <code>free</code> reads the <code>prev_size</code> field, jumps back to the header of the previous block, unlinks it from its current bin, and merges the two chunks by combining their sizes.</p>
+</li>
+<li>
+<p><strong>Forward Coalesce:</strong> It checks the state of the physically next block (by reading the header of the chunk after that to see its <code>PREV_INUSE</code>). If the next block is free, it merges it too. If the next block is the <strong>Top Chunk</strong>, the chunk being freed is simply merged directly into the Top Chunk and the operation ends (it is not placed in any bin).</p>
+</li>
+</ul>
+<h3 id="5-insertion-into-the-unsorted-bin">5. Insertion into the Unsorted Bin</h3>
+<p>If the chunk resulting from the merges (or the original chunk if no merges occurred) does not border the Top Chunk, it is inserted at the beginning of the Unsorted Bin's doubly linked list (FIFO).
+* The <code>PREV_INUSE</code> bit of the next chunk is set to <code>0</code>.
+* The <code>prev_size</code> field of the next chunk is updated with the new size of this free block.</p>
+<h3 id="6-heap-trimming">6. Heap Trimming</h3>
+<p>If, after a coalescence with the Top Chunk, the total size of the Top Chunk exceeds a certain threshold (typically 128 KB), <code>free</code> internally calls <code>systrim()</code>. This process attempts to return the excess memory at the top of the heap directly to the operating system via <code>sbrk</code> with negative values, lowering the memory footprint of the process.</p>
+<p>Sources :</p>
+<ul>
+<li>
+<p><a href="https://www.openeuler.org/en/blog/wangshuo/Glibc_Malloc_Source_Code_Analysis_(1).html">OpenEuler</a></p>
+</li>
+<li>
+<p>(Heap Azeria)[https://azeria-labs.com/heap-exploitation-part-2-glibc-heap-free-bins/]</p>
+</li>
+</ul>
+
+
+
+
+
+
+
+  
+  
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "../../..", "features": ["navigation.tabs", "navigation.sections", "navigation.indexes", "search.suggest", "content.code.copy"], "search": "../../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+    
+    
+      <script src="../../../assets/javascripts/bundle.79ae519e.min.js"></script>
+      
+        <script src="https://unpkg.com/mathjax@3/es5/tex-mml-chtml.js"></script>
+      
+    
+  </body>
+</html>
