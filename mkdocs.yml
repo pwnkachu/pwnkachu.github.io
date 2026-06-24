@@ -81,6 +81,8 @@ nav:
       - Tamarin Overview: general/tamarin.md
       - Protocol Example: general/tamarin_protocol_example.md
       - Protocol Modeling: general/tamarin_modeling.md
+      - Advanced MRR: general/MultiSetRewrite_advanced.md
+      - Process Calculus: general/process_calculus.md
 
 markdown_extensions:
   - admonition
