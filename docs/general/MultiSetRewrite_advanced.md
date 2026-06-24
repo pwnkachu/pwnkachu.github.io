@@ -160,10 +160,54 @@ The length of the option is seen as a metric for its complexity.
 
 # Additional Channels mode
 
-We can limit the attacker control over the protocol agent's communication channels by specifying channel rules, that will model channels instrinsic security properties.
+We can limit the attacker control over the protocol agent's communication channels by specifying channel rules, that will model channels instrinsic security properties. Those are additional rules to add to our source code that model different type of channels:
 
 - `Conf()` A confidential channel is one in which we can send a message and we are assured that only the intended receiver (must be specified) will be able to read the message. The attacker can still inject and craft messages to the channel in order to impersonate another entity.
 
+```
+rule ChanOut_C:
+        [ Out_C($A,$B,x) ]
+      --[ ChanOut_C($A,$B,x) ]->
+        [ !Conf($B,x) ]
+
+rule ChanIn_C:
+        [ !Conf($B,x), In($A) ]
+      --[ ChanIn_C($A,$B,x) ]->
+        [ In_C($A,$B,x) ]
+
+rule ChanIn_CAdv:
+    [ In(<$A,$B,x>) ]
+        -->
+        [ In_C($A,$B,x) ]
+```
+
 - `Auth()` The adversary can learn everything sent on an authentic channel. The adversary cannot change the sender of the message neither the message itself.
 
+```
+rule ChanOut_A:
+    [ Out_A($A,$B,x) ]
+    --[ ChanOut_A($A,$B,x) ]->
+    [ !Auth($A,x), Out(<$A,$B,x>) ]
+
+rule ChanIn_A:
+    [ !Auth($A,x), In($B) ]
+    --[ ChanIn_A($A,$B,x) ]->
+    [ In_A($A,$B,x) ]
+```
+
 - `Secu()` A channel that is both confidential and authentic. An attacker can still store a message sent over a secure channel for replay at a later point in time.
+
+
+```
+rule ChanOut_S:
+        [ Out_S($A,$B,x) ]
+      --[ ChanOut_S($A,$B,x) ]->
+        [ !Sec($A,$B,x) ]
+
+rule ChanIn_S:
+        [ !Sec($A,$B,x) ]
+      --[ ChanIn_S($A,$B,x) ]->
+        [ In_S($A,$B,x) ]
+```
+
+If we want to avoid replay attacks we can use a `Sec($A,$B,x)` linear fact instead of a persistant one
